@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Suggested - Threat Intelligence Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/neo-theme.css">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --accent: #4f46e5;
+            --accent-dim: #6366f1;
+            --accent-glow: rgba(79, 70, 229, 0.08);
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #059669;
+            --ai-accent: #7c3aed;
+            --ai-glow: rgba(124, 58, 237, 0.1);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-active: rgba(79, 70, 229, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(124, 58, 237, 0.02) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(26, 26, 46, 0.01) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(124, 58, 237, 0.01) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app { position: relative; z-index: 1; }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .brand h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .brand .tagline {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            border-radius: 8px;
+            width: 300px;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--ai-accent);
+            box-shadow: 0 0 0 3px var(--ai-glow);
+        }
+
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.85rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        .stats-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0.6rem 2rem;
+        }
+
+        .stats-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            overflow-x: auto;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            font-size: 0.75rem;
+        }
+
+        .stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .stat-dot.live { background: var(--success); }
+        .stat-dot.ai { background: var(--ai-accent); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .stat-label { color: var(--text-muted); }
+        .stat-value { color: var(--text-primary); font-weight: 600; }
+
+        .filter-bar {
+            max-width: 1600px;
+            margin: 1.5rem auto 0;
+            padding: 0 2rem;
+        }
+
+        .filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .chip {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .chip:hover {
+            border-color: var(--ai-accent);
+            color: var(--ai-accent);
+        }
+
+        .chip.active {
+            background: var(--ai-glow);
+            border-color: var(--ai-accent);
+            color: var(--ai-accent);
+        }
+
+        .main {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+        }
+
+        .ai-banner {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(167, 139, 250, 0.05));
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .ai-banner .ai-icon {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ai-banner .ai-text h3 {
+            font-size: 0.9rem;
+            color: var(--ai-accent);
+            margin-bottom: 0.2rem;
+        }
+
+        .ai-banner .ai-text p {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .article-count {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .article-count strong {
+            color: var(--ai-accent);
+        }
+
+        .article-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            transition: all 0.25s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .article-card:hover {
+            border-color: var(--ai-accent);
+            background: var(--bg-hover);
+            transform: translateX(4px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .article-card .relevance-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+
+        .relevance-high {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+
+        .relevance-medium {
+            background: rgba(253, 126, 20, 0.1);
+            color: #fd7e14;
+            border: 1px solid rgba(253, 126, 20, 0.3);
+        }
+
+        .relevance-low {
+            background: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
+            border: 1px solid rgba(108, 117, 125, 0.3);
+        }
+
+        .article-card .source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.2rem 0.6rem;
+            background: var(--ai-glow);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--ai-accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.6rem;
+        }
+
+        .article-card .dashboard-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-left: 0.4rem;
+            text-transform: uppercase;
+        }
+
+        .article-card .title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            display: block;
+            padding-right: 100px;
+        }
+
+        .article-card .title:hover { color: var(--ai-accent); }
+
+        .article-card .summary {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .article-card .meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .article-card .meta .time-ago {
+            color: var(--warning);
+            font-weight: 500;
+        }
+
+        .article-card .matched-keywords {
+            display: flex;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .article-card .keyword-tag {
+            padding: 0.15rem 0.5rem;
+            background: var(--ai-glow);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 3px;
+            font-size: 0.65rem;
+            color: var(--ai-accent);
+            font-weight: 500;
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .cyber-loader {
+            width: 60px;
+            height: 60px;
+            border: 3px solid var(--border);
+            border-top-color: var(--ai-accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loading-text {
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        /* Reading pane */
+        .reading-pane {
+            position: fixed;
+            top: 0;
+            right: -500px;
+            width: 500px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            z-index: 200;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        .reading-pane.open {
+            right: 0;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .reading-pane .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .reading-pane .close-btn:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .reading-pane .rp-source {
+            font-size: 0.7rem;
+            color: var(--ai-accent);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 0.75rem;
+        }
+
+        .reading-pane .rp-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+        }
+
+        .reading-pane .rp-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .reading-pane .rp-relevance {
+            background: var(--ai-glow);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .reading-pane .rp-relevance h4 {
+            font-size: 0.75rem;
+            color: var(--ai-accent);
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .reading-pane .rp-relevance p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .reading-pane .rp-summary {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .reading-pane .rp-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--ai-accent);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .reading-pane .rp-link:hover { text-decoration: underline; }
+
+        .backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 199;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .backdrop.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+        @media (max-width: 768px) {
+            .header-content { flex-wrap: wrap; }
+            .search-box input { width: 100%; }
+            .reading-pane { width: 100%; right: -100%; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="cyber-loader"></div>
+            <p class="loading-text">AI is analysing threat intelligence feeds...</p>
+        </div>
+
+        <!-- Top Hero Header -->
+        <div class="hero-header" style="background:linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);padding:1.8rem 2rem;text-align:center;border-bottom:2px solid #0f3460;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 50% 50%, rgba(124,58,237,0.1) 0%, transparent 70%);pointer-events:none;"></div>
+            <div style="position:relative;z-index:1;">
+                <h1 style="font-size:1.8rem;font-weight:800;color:#ffffff;margin-bottom:0.3rem;letter-spacing:-0.5px;">🤖 AI Suggested Intelligence</h1>
+                <p style="font-size:0.8rem;color:rgba(255,255,255,0.6);letter-spacing:2px;text-transform:uppercase;">AI-Powered Relevance Analysis for Telecom, Media & Devices</p>
+            </div>
+        </div>
+
+        <nav class="nav-bar" style="background:#f8f9fa;border-bottom:1px solid #dee2e6;padding:0.5rem 2rem;display:flex;align-items:center;gap:2rem;">
+            <div style="max-width:1600px;margin:0 auto;display:flex;gap:1.5rem;width:100%;">
+                <a href="/" style="color:#495057;text-decoration:none;font-weight:500;font-size:0.85rem;padding:0.4rem 1rem;border-radius:6px;transition:all 0.2s;">Horizon Scans</a>
+                <a href="/vulnerabilities" style="color:#495057;text-decoration:none;font-weight:500;font-size:0.85rem;padding:0.4rem 1rem;border-radius:6px;transition:all 0.2s;">Vulnerabilities</a>
+                <a href="/suggested" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:0.85rem;padding:0.4rem 1rem;border-radius:6px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;">🤖 Suggested</a>
+            </div>
+        </nav>
+
+        <header class="header">
+            <div class="header-content">
+                <div class="brand">
+                    <div class="brand-icon">🤖</div>
+                    <div>
+                        <h1>AI Suggested Dashboard</h1>
+                        <p class="tagline">Relevant threats for Telecom, Media & Devices</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search suggested articles..." autocomplete="off">
+                    </div>
+                    <button class="btn btn-primary" id="refreshBtn" onclick="loadSuggested()">
+                        ⟳ Analyse
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stats-content">
+                <div class="stat-item">
+                    <span class="stat-dot ai"></span>
+                    <span class="stat-label">AI Status:</span>
+                    <span class="stat-value" id="statusText">Ready</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Suggested:</span>
+                    <span class="stat-value" id="totalSuggested">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Analysed:</span>
+                    <span class="stat-value" id="totalAnalyzed">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Last Analysis:</span>
+                    <span class="stat-value" id="lastFetch">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-chips" id="filterChips">
+                <span class="chip active" data-cat="all" onclick="filterByCategory('all', this)">All</span>
+                <span class="chip" data-cat="vendors" onclick="filterByCategory('vendors', this)">🏢 Vendors (Fortinet, Cisco, PaloAlto)</span>
+                <span class="chip" data-cat="industry" onclick="filterByCategory('industry', this)">📡 Telecom & Media</span>
+                <span class="chip" data-cat="critical_infra" onclick="filterByCategory('critical_infra', this)">🔒 Critical Infrastructure</span>
+            </div>
+        </div>
+
+        <main class="main">
+            <div class="ai-banner">
+                <div class="ai-icon">🧠</div>
+                <div class="ai-text">
+                    <h3>AI Relevance Engine</h3>
+                    <p>Articles are scored based on relevance to: Telecom/Telecommunications, Media & Devices, and key vendors (Fortinet, Cisco, Palo Alto). Higher scores indicate greater business impact.</p>
+                </div>
+            </div>
+
+            <div class="article-count" id="articleCount"></div>
+            <div id="feedContainer"></div>
+        </main>
+
+        <div class="backdrop" id="backdrop" onclick="closeReadingPane()"></div>
+        <div class="reading-pane" id="readingPane">
+            <button class="close-btn" onclick="closeReadingPane()">✕</button>
+            <div class="rp-source" id="rpSource"></div>
+            <h2 class="rp-title" id="rpTitle"></h2>
+            <div class="rp-meta" id="rpMeta"></div>
+            <div class="rp-relevance" id="rpRelevance">
+                <h4>🤖 AI Relevance Analysis</h4>
+                <p id="rpRelevanceText"></p>
+            </div>
+            <div class="rp-summary" id="rpSummary"></div>
+            <a class="rp-link" id="rpLink" href="#" target="_blank" rel="noopener noreferrer">
+                Read full article →
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let allArticles = [];
+        let filteredArticles = [];
+        let activeCategory = 'all';
+
+        async function loadSuggested() {
+            const overlay = document.getElementById('loadingOverlay');
+            const btn = document.getElementById('refreshBtn');
+            overlay.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/feeds/suggested');
+                const data = await res.json();
+                allArticles = data.articles;
+
+                document.getElementById('totalSuggested').textContent = data.total;
+                document.getElementById('totalAnalyzed').textContent = data.analyzed;
+                document.getElementById('lastFetch').textContent = new Date().toLocaleTimeString();
+                document.getElementById('statusText').textContent = 'Analysis Complete';
+
+                filterAndRender();
+            } catch (err) {
+                document.getElementById('statusText').textContent = 'Error';
+            }
+
+            overlay.classList.add('hidden');
+            btn.disabled = false;
+        }
+
+        function filterByCategory(category, el) {
+            activeCategory = category;
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            filterAndRender();
+        }
+
+        function filterAndRender() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            filteredArticles = allArticles.filter(a => {
+                const matchCategory = activeCategory === 'all' || 
+                    (a.matched_categories && a.matched_categories.includes(activeCategory));
+                const matchQuery = !query || 
+                    a.title.toLowerCase().includes(query) ||
+                    a.source.toLowerCase().includes(query) ||
+                    (a.summary && a.summary.toLowerCase().includes(query)) ||
+                    (a.matched_keywords && a.matched_keywords.some(k => k.includes(query)));
+                return matchCategory && matchQuery;
+            });
+
+            document.getElementById('articleCount').innerHTML = 
+                'Showing <strong>' + filteredArticles.length + '</strong> AI-suggested articles';
+            renderArticles();
+        }
+
+        function renderArticles() {
+            const container = document.getElementById('feedContainer');
+            if (filteredArticles.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">🤖</div><p>No relevant articles found matching your criteria</p></div>';
+                return;
+            }
+
+            let html = '';
+            filteredArticles.forEach((a, i) => {
+                const relevanceClass = a.relevance_score >= 10 ? 'relevance-high' : 
+                                       a.relevance_score >= 5 ? 'relevance-medium' : 'relevance-low';
+                const relevanceLabel = a.relevance_score >= 10 ? '🔴 High' : 
+                                       a.relevance_score >= 5 ? '🟠 Medium' : '🟡 Low';
+
+                html += '<div class="article-card" onclick="openArticle(' + i + ')">'
+                    + '<span class="relevance-badge ' + relevanceClass + '">' + relevanceLabel + ' (Score: ' + a.relevance_score + ')</span>'
+                    + '<span class="source-badge">' + escapeHtml(a.source) + '</span>'
+                    + '<span class="dashboard-badge">' + escapeHtml(a.dashboard || '') + '</span>'
+                    + '<a class="title" href="' + escapeHtml(a.link) + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">' + escapeHtml(a.title) + '</a>'
+                    + (a.summary ? '<p class="summary">' + escapeHtml(stripHtml(a.summary)) + '</p>' : '')
+                    + '<div class="meta">'
+                    + '<span class="time-ago">' + timeAgo(a.published_iso) + '</span>'
+                    + '<span>' + escapeHtml(a.published || '') + '</span>'
+                    + '</div>'
+                    + '<div class="matched-keywords">'
+                    + (a.matched_keywords || []).slice(0, 8).map(k => '<span class="keyword-tag">' + escapeHtml(k) + '</span>').join('')
+                    + '</div>'
+                    + '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function openArticle(index) {
+            const a = filteredArticles[index];
+            document.getElementById('rpSource').textContent = a.source + ' • ' + (a.dashboard || '');
+            document.getElementById('rpTitle').textContent = a.title;
+            document.getElementById('rpMeta').textContent = a.published || '';
+            document.getElementById('rpSummary').textContent = stripHtml(a.summary || 'No summary available.');
+            document.getElementById('rpLink').href = a.link;
+            
+            const categories = (a.matched_categories || []).map(c => {
+                if (c === 'vendors') return 'Vendor Match';
+                if (c === 'industry') return 'Telecom/Media/Devices';
+                if (c === 'critical_infra') return 'Critical Infrastructure';
+                return c;
+            });
+            document.getElementById('rpRelevanceText').textContent = 
+                'Relevance Score: ' + a.relevance_score + ' | Categories: ' + categories.join(', ') + 
+                ' | Keywords: ' + (a.matched_keywords || []).join(', ');
+            
+            document.getElementById('readingPane').classList.add('open');
+            document.getElementById('backdrop').classList.add('open');
+        }
+
+        function closeReadingPane() {
+            document.getElementById('readingPane').classList.remove('open');
+            document.getElementById('backdrop').classList.remove('open');
+        }
+
+        function timeAgo(isoDate) {
+            if (!isoDate) return '';
+            try {
+                const diff = Date.now() - new Date(isoDate).getTime();
+                const mins = Math.floor(diff / 60000);
+                if (mins < 1) return 'Just now';
+                if (mins < 60) return mins + 'm ago';
+                const hrs = Math.floor(mins / 60);
+                if (hrs < 24) return hrs + 'h ago';
+                const days = Math.floor(hrs / 24);
+                return days + 'd ago';
+            } catch(e) { return ''; }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function stripHtml(html) {
+            if (!html) return '';
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            return tmp.textContent || '';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeReadingPane();
+        });
+
+        document.getElementById('searchInput').addEventListener('input', () => {
+            filterAndRender();
+        });
+
+        loadSuggested();
+    </script>
+</body>
+</html>

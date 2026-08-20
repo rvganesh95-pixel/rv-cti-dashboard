@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTI Dashboard - Style Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; }
+        
+        .style-selector {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            background: rgba(10,10,10,0.95); backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem 2rem;
+            display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+        }
+        .style-selector h3 { font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .style-btn {
+            padding: 0.5rem 1.2rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15);
+            background: transparent; color: #ccc; font-size: 0.78rem; font-weight: 500;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .style-btn:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+        .style-btn.active { background: #fff; color: #000; border-color: #fff; }
+
+        .preview-container { padding-top: 80px; }
+        .preview-section { display: none; min-height: 100vh; }
+        .preview-section.active { display: block; }
+
+        /* ============================
+           STYLE 1: GLASSMORPHISM DARK
+           ============================ */
+        .glass-preview {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .glass-preview .dashboard {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .glass-preview .sidebar {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+        }
+        .glass-preview .sidebar h2 { font-size: 0.9rem; margin-bottom: 1.5rem; color: #fff; text-align: center; }
+        .glass-preview .sidebar .nav-item {
+            padding: 0.7rem 1rem; border-radius: 10px; font-size: 0.8rem;
+            color: rgba(255,255,255,0.6); margin-bottom: 0.3rem; cursor: pointer; transition: all 0.2s;
+        }
+        .glass-preview .sidebar .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .glass-preview .sidebar .nav-item.active { background: rgba(139,92,246,0.2); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+        .glass-preview .main-area { display: flex; flex-direction: column; gap: 1.5rem; }
+        .glass-preview .header-bar {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 1.2rem 1.5rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .glass-preview .header-bar h1 { font-size: 1.3rem; font-weight: 700; }
+        .glass-preview .header-bar .badge { background: rgba(139,92,246,0.2); color: #a78bfa; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+        .glass-preview .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        .glass-preview .stat-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 1.2rem;
+            transition: all 0.3s;
+        }
+        .glass-preview .stat-card:hover { border-color: rgba(139,92,246,0.3); transform: translateY(-2px); }
+        .glass-preview .stat-card .label { font-size: 0.7rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
+        .glass-preview .stat-card .value { font-size: 1.8rem; font-weight: 700; margin: 0.3rem 0; }
+        .glass-preview .stat-card .change { font-size: 0.7rem; color: #34d399; }
+        .glass-preview .stat-card .change.bad { color: #f87171; }
+        .glass-preview .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
+        .glass-preview .feed-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 1.5rem;
+        }
+        .glass-preview .feed-card h3 { font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; color: rgba(255,255,255,0.8); }
+        .glass-preview .feed-item {
+            padding: 0.8rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .glass-preview .feed-item:last-child { border: none; }
+        .glass-preview .feed-item .title { font-size: 0.78rem; color: #e2e8f0; }
+        .glass-preview .feed-item .severity {
+            padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.65rem; font-weight: 600;
+        }
+        .glass-preview .sev-critical { background: rgba(239,68,68,0.2); color: #f87171; }
+        .glass-preview .sev-high { background: rgba(251,146,60,0.2); color: #fb923c; }
+        .glass-preview .sev-medium { background: rgba(250,204,21,0.2); color: #fbbf24; }
+
+        /* ============================
+           STYLE 2: CYBERPUNK TERMINAL
+           ============================ */
+        .cyber-preview {
+            background: #0a0e17;
+            padding: 2rem;
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        .cyber-preview::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                linear-gradient(rgba(0,255,136,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,136,0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+        .cyber-preview .dashboard {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .cyber-preview .sidebar {
+            background: rgba(0,255,136,0.02);
+            border: 1px solid rgba(0,255,136,0.15);
+            border-radius: 4px;
+            padding: 1.5rem 0.75rem;
+        }
+        .cyber-preview .sidebar h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem; color: #00ff88; text-align: center;
+            margin-bottom: 1.5rem; text-shadow: 0 0 10px rgba(0,255,136,0.5);
+        }
+        .cyber-preview .sidebar .nav-item {
+            font-family: 'JetBrains Mono', monospace;
+            padding: 0.6rem 0.8rem; font-size: 0.7rem;
+            color: rgba(0,255,136,0.5); margin-bottom: 0.2rem; cursor: pointer;
+            border-left: 2px solid transparent; transition: all 0.2s;
+        }
+        .cyber-preview .sidebar .nav-item:hover { color: #00ff88; border-left-color: #00ff88; background: rgba(0,255,136,0.05); }
+        .cyber-preview .sidebar .nav-item.active { color: #00ff88; border-left-color: #00ff88; background: rgba(0,255,136,0.08); text-shadow: 0 0 5px rgba(0,255,136,0.3); }
+        .cyber-preview .main-area { display: flex; flex-direction: column; gap: 1.5rem; }
+        .cyber-preview .header-bar {
+            border: 1px solid rgba(0,255,136,0.15);
+            border-radius: 4px; padding: 1rem 1.5rem;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,255,136,0.02);
+        }
+        .cyber-preview .header-bar h1 { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.3); }
+        .cyber-preview .header-bar .status { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #00ff88; animation: blink 1.5s infinite; }
+        @keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0.3; } }
+        .cyber-preview .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        .cyber-preview .stat-card {
+            border: 1px solid rgba(0,255,136,0.15); border-radius: 4px;
+            padding: 1rem; background: rgba(0,255,136,0.02);
+            position: relative; overflow: hidden;
+        }
+        .cyber-preview .stat-card::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff88, transparent);
+        }
+        .cyber-preview .stat-card .label { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: rgba(0,255,136,0.5); text-transform: uppercase; letter-spacing: 1px; }
+        .cyber-preview .stat-card .value { font-family: 'JetBrains Mono', monospace; font-size: 1.6rem; font-weight: 700; color: #00ff88; margin: 0.4rem 0; text-shadow: 0 0 8px rgba(0,255,136,0.4); }
+        .cyber-preview .stat-card .change { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: #22d3ee; }
+        .cyber-preview .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
+        .cyber-preview .feed-card {
+            border: 1px solid rgba(0,255,136,0.15); border-radius: 4px;
+            padding: 1.2rem; background: rgba(0,255,136,0.02);
+        }
+        .cyber-preview .feed-card h3 { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: rgba(0,255,136,0.7); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+        .cyber-preview .feed-item {
+            padding: 0.6rem 0; border-bottom: 1px solid rgba(0,255,136,0.08);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .cyber-preview .feed-item .title { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #cbd5e1; }
+        .cyber-preview .feed-item .severity { font-family: 'JetBrains Mono', monospace; padding: 0.15rem 0.5rem; border-radius: 2px; font-size: 0.6rem; font-weight: 600; }
+        .cyber-preview .sev-critical { background: rgba(255,0,0,0.15); color: #ff4444; border: 1px solid rgba(255,0,0,0.3); text-shadow: 0 0 5px rgba(255,0,0,0.3); }
+        .cyber-preview .sev-high { background: rgba(255,165,0,0.15); color: #ff8c00; border: 1px solid rgba(255,165,0,0.3); }
+        .cyber-preview .sev-medium { background: rgba(255,255,0,0.1); color: #cccc00; border: 1px solid rgba(255,255,0,0.2); }
+
+        /* ============================
+           STYLE 3: MODERN GRADIENT SAAS
+           ============================ */
+        .saas-preview {
+            background: #fafbfc;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .saas-preview .dashboard {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .saas-preview .sidebar {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .saas-preview .sidebar h2 { font-size: 0.9rem; color: #111; margin-bottom: 1.5rem; text-align: center; }
+        .saas-preview .sidebar .nav-item {
+            padding: 0.65rem 1rem; border-radius: 10px; font-size: 0.8rem;
+            color: #6b7280; margin-bottom: 0.25rem; cursor: pointer; transition: all 0.2s;
+        }
+        .saas-preview .sidebar .nav-item:hover { background: #f3f4f6; color: #111; }
+        .saas-preview .sidebar .nav-item.active { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; font-weight: 600; box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
+        .saas-preview .main-area { display: flex; flex-direction: column; gap: 1.5rem; }
+        .saas-preview .header-bar {
+            background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+            padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .saas-preview .header-bar h1 { font-size: 1.3rem; color: #111; font-weight: 700; }
+        .saas-preview .header-bar .badge { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.72rem; font-weight: 600; box-shadow: 0 2px 8px rgba(102,126,234,0.3); }
+        .saas-preview .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        .saas-preview .stat-card {
+            background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
+            padding: 1.2rem; transition: all 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .saas-preview .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        .saas-preview .stat-card .label { font-size: 0.7rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+        .saas-preview .stat-card .value { font-size: 1.8rem; font-weight: 700; color: #111; margin: 0.3rem 0; }
+        .saas-preview .stat-card .change { font-size: 0.7rem; color: #10b981; }
+        .saas-preview .stat-card .change.bad { color: #ef4444; }
+        .saas-preview .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
+        .saas-preview .feed-card {
+            background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
+            padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .saas-preview .feed-card h3 { font-size: 0.85rem; color: #374151; font-weight: 600; margin-bottom: 1rem; }
+        .saas-preview .feed-item {
+            padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .saas-preview .feed-item .title { font-size: 0.78rem; color: #374151; }
+        .saas-preview .feed-item .severity { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.65rem; font-weight: 600; }
+        .saas-preview .sev-critical { background: #fef2f2; color: #dc2626; }
+        .saas-preview .sev-high { background: #fff7ed; color: #ea580c; }
+        .saas-preview .sev-medium { background: #fefce8; color: #ca8a04; }
+
+        /* ============================
+           STYLE 4: DARK ELEGANT
+           ============================ */
+        .elegant-preview {
+            background: #111318;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .elegant-preview .dashboard {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .elegant-preview .sidebar {
+            background: #1a1d24;
+            border: 1px solid #2a2d35;
+            border-radius: 8px;
+            padding: 1.5rem 0.75rem;
+        }
+        .elegant-preview .sidebar h2 { font-size: 0.8rem; color: #e2e8f0; margin-bottom: 1.5rem; text-align: center; font-weight: 600; }
+        .elegant-preview .sidebar .nav-item {
+            padding: 0.55rem 0.8rem; border-radius: 6px; font-size: 0.75rem;
+            color: #64748b; margin-bottom: 0.15rem; cursor: pointer; transition: all 0.15s;
+        }
+        .elegant-preview .sidebar .nav-item:hover { background: #222530; color: #e2e8f0; }
+        .elegant-preview .sidebar .nav-item.active { background: #222530; color: #f59e0b; font-weight: 600; border-left: 2px solid #f59e0b; }
+        .elegant-preview .main-area { display: flex; flex-direction: column; gap: 1rem; }
+        .elegant-preview .header-bar {
+            background: #1a1d24; border: 1px solid #2a2d35; border-radius: 8px;
+            padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+        }
+        .elegant-preview .header-bar h1 { font-size: 1.1rem; color: #e2e8f0; font-weight: 600; }
+        .elegant-preview .header-bar .badge { background: #f59e0b; color: #000; padding: 0.3rem 0.7rem; border-radius: 4px; font-size: 0.65rem; font-weight: 700; }
+        .elegant-preview .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+        .elegant-preview .stat-card {
+            background: #1a1d24; border: 1px solid #2a2d35; border-radius: 8px;
+            padding: 1rem; transition: all 0.2s;
+        }
+        .elegant-preview .stat-card:hover { border-color: #3a3d45; }
+        .elegant-preview .stat-card .label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        .elegant-preview .stat-card .value { font-size: 1.5rem; font-weight: 700; color: #e2e8f0; margin: 0.3rem 0; }
+        .elegant-preview .stat-card .change { font-size: 0.65rem; color: #34d399; }
+        .elegant-preview .stat-card .change.bad { color: #f87171; }
+        .elegant-preview .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem; }
+        .elegant-preview .feed-card {
+            background: #1a1d24; border: 1px solid #2a2d35; border-radius: 8px;
+            padding: 1.2rem;
+        }
+        .elegant-preview .feed-card h3 { font-size: 0.75rem; color: #94a3b8; font-weight: 600; margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .elegant-preview .feed-item {
+            padding: 0.6rem 0; border-bottom: 1px solid #222530;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .elegant-preview .feed-item .title { font-size: 0.75rem; color: #cbd5e1; }
+        .elegant-preview .feed-item .severity { padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.6rem; font-weight: 700; }
+        .elegant-preview .sev-critical { background: #451a1a; color: #f87171; }
+        .elegant-preview .sev-high { background: #452a1a; color: #fb923c; }
+        .elegant-preview .sev-medium { background: #3d3a1a; color: #fbbf24; }
+
+        /* ============================
+           STYLE 5: NEOMORPHISM
+           ============================ */
+        .neo-preview {
+            background: #e8ecf0;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .neo-preview .dashboard {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .neo-preview .sidebar {
+            background: #e8ecf0;
+            border-radius: 20px;
+            padding: 1.5rem 1rem;
+            box-shadow: 8px 8px 16px #c8ccd0, -8px -8px 16px #ffffff;
+        }
+        .neo-preview .sidebar h2 { font-size: 0.9rem; color: #4a5568; margin-bottom: 1.5rem; text-align: center; }
+        .neo-preview .sidebar .nav-item {
+            padding: 0.7rem 1rem; border-radius: 12px; font-size: 0.8rem;
+            color: #718096; margin-bottom: 0.4rem; cursor: pointer; transition: all 0.2s;
+        }
+        .neo-preview .sidebar .nav-item:hover { color: #2d3748; }
+        .neo-preview .sidebar .nav-item.active {
+            background: #e8ecf0; color: #5b21b6; font-weight: 600;
+            box-shadow: inset 4px 4px 8px #c8ccd0, inset -4px -4px 8px #ffffff;
+        }
+        .neo-preview .main-area { display: flex; flex-direction: column; gap: 1.5rem; }
+        .neo-preview .header-bar {
+            background: #e8ecf0; border-radius: 16px;
+            padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 6px 6px 12px #c8ccd0, -6px -6px 12px #ffffff;
+        }
+        .neo-preview .header-bar h1 { font-size: 1.3rem; color: #2d3748; font-weight: 700; }
+        .neo-preview .header-bar .badge {
+            background: #e8ecf0; color: #5b21b6; padding: 0.4rem 1rem; border-radius: 20px;
+            font-size: 0.72rem; font-weight: 600;
+            box-shadow: 3px 3px 6px #c8ccd0, -3px -3px 6px #ffffff;
+        }
+        .neo-preview .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        .neo-preview .stat-card {
+            background: #e8ecf0; border-radius: 16px;
+            padding: 1.2rem; transition: all 0.3s;
+            box-shadow: 6px 6px 12px #c8ccd0, -6px -6px 12px #ffffff;
+        }
+        .neo-preview .stat-card:hover { box-shadow: inset 4px 4px 8px #c8ccd0, inset -4px -4px 8px #ffffff; }
+        .neo-preview .stat-card .label { font-size: 0.7rem; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; }
+        .neo-preview .stat-card .value { font-size: 1.8rem; font-weight: 700; color: #2d3748; margin: 0.3rem 0; }
+        .neo-preview .stat-card .change { font-size: 0.7rem; color: #059669; }
+        .neo-preview .stat-card .change.bad { color: #dc2626; }
+        .neo-preview .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
+        .neo-preview .feed-card {
+            background: #e8ecf0; border-radius: 16px; padding: 1.5rem;
+            box-shadow: 6px 6px 12px #c8ccd0, -6px -6px 12px #ffffff;
+        }
+        .neo-preview .feed-card h3 { font-size: 0.85rem; color: #4a5568; font-weight: 600; margin-bottom: 1rem; }
+        .neo-preview .feed-item {
+            padding: 0.75rem 0; border-bottom: 1px solid #d2d6da;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .neo-preview .feed-item .title { font-size: 0.78rem; color: #4a5568; }
+        .neo-preview .feed-item .severity { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.65rem; font-weight: 600; }
+        .neo-preview .sev-critical { background: #fee2e2; color: #dc2626; }
+        .neo-preview .sev-high { background: #ffedd5; color: #ea580c; }
+        .neo-preview .sev-medium { background: #fef3c7; color: #d97706; }
+    </style>
+</head>
+<body>
+    <div class="style-selector">
+        <h3>Select Style:</h3>
+        <button class="style-btn active" onclick="showStyle('glass')">Glassmorphism Dark</button>
+        <button class="style-btn" onclick="showStyle('cyber')">Cyberpunk Terminal</button>
+        <button class="style-btn" onclick="showStyle('saas')">Modern SaaS</button>
+        <button class="style-btn" onclick="showStyle('elegant')">Dark Elegant</button>
+        <button class="style-btn" onclick="showStyle('neo')">Neomorphism</button>
+    </div>
+
+    <div class="preview-container">
+
+        <!-- GLASSMORPHISM DARK -->
+        <div class="preview-section active" id="style-glass">
+            <div class="glass-preview">
+                <div class="dashboard">
+                    <div class="sidebar">
+                        <h2>🛡️ CTI Dashboard</h2>
+                        <div class="nav-item active">🛡️ Horizon Scans</div>
+                        <div class="nav-item">⚠️ Vulnerabilities</div>
+                        <div class="nav-item">📦 NPM</div>
+                        <div class="nav-item">💀 Ransomware</div>
+                        <div class="nav-item">👥 Adversaries</div>
+                        <div class="nav-item">🕸️ Knowledge Graph</div>
+                    </div>
+                    <div class="main-area">
+                        <div class="header-bar">
+                            <h1>Threat Intelligence</h1>
+                            <div class="badge">🔴 12 Critical Alerts</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="label">Active CVEs</div>
+                                <div class="value">247</div>
+                                <div class="change">↑ 12% this week</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Threat Actors</div>
+                                <div class="value">38</div>
+                                <div class="change">↑ 3 new</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Ransomware Groups</div>
+                                <div class="value">15</div>
+                                <div class="change bad">↑ 2 active</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">IOCs Tracked</div>
+                                <div class="value">1.2K</div>
+                                <div class="change">↑ 89 today</div>
+                            </div>
+                        </div>
+                        <div class="content-grid">
+                            <div class="feed-card">
+                                <h3>Latest Vulnerability Advisories</h3>
+                                <div class="feed-item"><span class="title">CVE-2026-1234 - Splunk RCE via crafted SPL</span><span class="severity sev-critical">CRITICAL</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-5678 - Cisco ASA Auth Bypass</span><span class="severity sev-critical">CRITICAL</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-9012 - Fortinet SSL VPN Overflow</span><span class="severity sev-high">HIGH</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-3456 - Palo Alto PAN-OS XSS</span><span class="severity sev-medium">MEDIUM</span></div>
+                            </div>
+                            <div class="feed-card">
+                                <h3>Active Campaigns</h3>
+                                <div class="feed-item"><span class="title">APT29 - SolarStorm 2.0</span><span class="severity sev-critical">ACTIVE</span></div>
+                                <div class="feed-item"><span class="title">LockBit 4.0 Resurgence</span><span class="severity sev-high">ACTIVE</span></div>
+                                <div class="feed-item"><span class="title">Lazarus - CryptoHeist</span><span class="severity sev-high">ACTIVE</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CYBERPUNK TERMINAL -->
+        <div class="preview-section" id="style-cyber">
+            <div class="cyber-preview">
+                <div class="dashboard">
+                    <div class="sidebar">
+                        <h2>> CTI_SYS v2.1</h2>
+                        <div class="nav-item active">[01] HORIZON</div>
+                        <div class="nav-item">[02] VULNS</div>
+                        <div class="nav-item">[03] SUPPLY_CHAIN</div>
+                        <div class="nav-item">[04] RANSOMWARE</div>
+                        <div class="nav-item">[05] ADVERSARIES</div>
+                        <div class="nav-item">[06] GRAPH_NET</div>
+                    </div>
+                    <div class="main-area">
+                        <div class="header-bar">
+                            <h1>> THREAT_MONITOR</h1>
+                            <div class="status">● LIVE FEED ACTIVE</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="label">// active_cves</div>
+                                <div class="value">247</div>
+                                <div class="change">+12% :: 7d</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">// threat_actors</div>
+                                <div class="value">038</div>
+                                <div class="change">+3 detected</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">// ransom_grps</div>
+                                <div class="value">015</div>
+                                <div class="change">+2 active</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">// iocs_tracked</div>
+                                <div class="value">1.2K</div>
+                                <div class="change">+89 today</div>
+                            </div>
+                        </div>
+                        <div class="content-grid">
+                            <div class="feed-card">
+                                <h3>> vulnerability_feed</h3>
+                                <div class="feed-item"><span class="title">CVE-2026-1234 :: Splunk RCE via SPL injection</span><span class="severity sev-critical">CRIT</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-5678 :: Cisco ASA auth_bypass</span><span class="severity sev-critical">CRIT</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-9012 :: Fortinet SSL overflow</span><span class="severity sev-high">HIGH</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-3456 :: PAN-OS reflected_xss</span><span class="severity sev-medium">MED</span></div>
+                            </div>
+                            <div class="feed-card">
+                                <h3>> active_ops</h3>
+                                <div class="feed-item"><span class="title">APT29 :: SOLARSTORM_2</span><span class="severity sev-critical">LIVE</span></div>
+                                <div class="feed-item"><span class="title">LOCKBIT_4 :: resurgence</span><span class="severity sev-high">LIVE</span></div>
+                                <div class="feed-item"><span class="title">LAZARUS :: crypto_heist</span><span class="severity sev-high">LIVE</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODERN SAAS -->
+        <div class="preview-section" id="style-saas">
+            <div class="saas-preview">
+                <div class="dashboard">
+                    <div class="sidebar">
+                        <h2>🛡️ CTI Dashboard</h2>
+                        <div class="nav-item active">🛡️ Horizon Scans</div>
+                        <div class="nav-item">⚠️ Vulnerabilities</div>
+                        <div class="nav-item">📦 NPM</div>
+                        <div class="nav-item">💀 Ransomware</div>
+                        <div class="nav-item">👥 Adversaries</div>
+                        <div class="nav-item">🕸️ Knowledge Graph</div>
+                    </div>
+                    <div class="main-area">
+                        <div class="header-bar">
+                            <h1>Threat Intelligence</h1>
+                            <div class="badge">12 Critical Alerts</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="label">Active CVEs</div>
+                                <div class="value">247</div>
+                                <div class="change">↑ 12% this week</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Threat Actors</div>
+                                <div class="value">38</div>
+                                <div class="change">↑ 3 new</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Ransomware Groups</div>
+                                <div class="value">15</div>
+                                <div class="change bad">↑ 2 active</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">IOCs Tracked</div>
+                                <div class="value">1.2K</div>
+                                <div class="change">↑ 89 today</div>
+                            </div>
+                        </div>
+                        <div class="content-grid">
+                            <div class="feed-card">
+                                <h3>Latest Vulnerability Advisories</h3>
+                                <div class="feed-item"><span class="title">CVE-2026-1234 - Splunk RCE via crafted SPL</span><span class="severity sev-critical">CRITICAL</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-5678 - Cisco ASA Auth Bypass</span><span class="severity sev-critical">CRITICAL</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-9012 - Fortinet SSL VPN Overflow</span><span class="severity sev-high">HIGH</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-3456 - Palo Alto PAN-OS XSS</span><span class="severity sev-medium">MEDIUM</span></div>
+                            </div>
+                            <div class="feed-card">
+                                <h3>Active Campaigns</h3>
+                                <div class="feed-item"><span class="title">APT29 - SolarStorm 2.0</span><span class="severity sev-critical">ACTIVE</span></div>
+                                <div class="feed-item"><span class="title">LockBit 4.0 Resurgence</span><span class="severity sev-high">ACTIVE</span></div>
+                                <div class="feed-item"><span class="title">Lazarus - CryptoHeist</span><span class="severity sev-high">ACTIVE</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DARK ELEGANT -->
+        <div class="preview-section" id="style-elegant">
+            <div class="elegant-preview">
+                <div class="dashboard">
+                    <div class="sidebar">
+                        <h2>CTI INTEL</h2>
+                        <div class="nav-item active">Horizon Scans</div>
+                        <div class="nav-item">Vulnerabilities</div>
+                        <div class="nav-item">Supply Chain</div>
+                        <div class="nav-item">Ransomware</div>
+                        <div class="nav-item">Adversaries</div>
+                        <div class="nav-item">Knowledge Graph</div>
+                    </div>
+                    <div class="main-area">
+                        <div class="header-bar">
+                            <h1>Threat Monitor</h1>
+                            <div class="badge">12 CRITICAL</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="label">Active CVEs</div>
+                                <div class="value">247</div>
+                                <div class="change">+12%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Threat Actors</div>
+                                <div class="value">38</div>
+                                <div class="change">+3</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Ransomware</div>
+                                <div class="value">15</div>
+                                <div class="change bad">+2</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">IOCs</div>
+                                <div class="value">1.2K</div>
+                                <div class="change">+89</div>
+                            </div>
+                        </div>
+                        <div class="content-grid">
+                            <div class="feed-card">
+                                <h3>Vulnerability Feed</h3>
+                                <div class="feed-item"><span class="title">CVE-2026-1234 - Splunk RCE via crafted SPL</span><span class="severity sev-critical">CRITICAL</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-5678 - Cisco ASA Auth Bypass</span><span class="severity sev-critical">CRITICAL</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-9012 - Fortinet SSL VPN Overflow</span><span class="severity sev-high">HIGH</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-3456 - Palo Alto PAN-OS XSS</span><span class="severity sev-medium">MEDIUM</span></div>
+                            </div>
+                            <div class="feed-card">
+                                <h3>Active Campaigns</h3>
+                                <div class="feed-item"><span class="title">APT29 - SolarStorm 2.0</span><span class="severity sev-critical">ACTIVE</span></div>
+                                <div class="feed-item"><span class="title">LockBit 4.0</span><span class="severity sev-high">ACTIVE</span></div>
+                                <div class="feed-item"><span class="title">Lazarus - CryptoHeist</span><span class="severity sev-high">ACTIVE</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEOMORPHISM -->
+        <div class="preview-section" id="style-neo">
+            <div class="neo-preview">
+                <div class="dashboard">
+                    <div class="sidebar">
+                        <h2>🛡️ CTI Dashboard</h2>
+                        <div class="nav-item active">🛡️ Horizon Scans</div>
+                        <div class="nav-item">⚠️ Vulnerabilities</div>
+                        <div class="nav-item">📦 NPM</div>
+                        <div class="nav-item">💀 Ransomware</div>
+                        <div class="nav-item">👥 Adversaries</div>
+                        <div class="nav-item">🕸️ Knowledge Graph</div>
+                    </div>
+                    <div class="main-area">
+                        <div class="header-bar">
+                            <h1>Threat Intelligence</h1>
+                            <div class="badge">12 Critical</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="label">Active CVEs</div>
+                                <div class="value">247</div>
+                                <div class="change">↑ 12%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Threat Actors</div>
+                                <div class="value">38</div>
+                                <div class="change">↑ 3 new</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Ransomware</div>
+                                <div class="value">15</div>
+                                <div class="change bad">↑ 2 active</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">IOCs</div>
+                                <div class="value">1.2K</div>
+                                <div class="change">↑ 89 today</div>
+                            </div>
+                        </div>
+                        <div class="content-grid">
+                            <div class="feed-card">
+                                <h3>Latest Vulnerability Advisories</h3>
+                                <div class="feed-item"><span class="title">CVE-2026-1234 - Splunk RCE via crafted SPL</span><span class="severity sev-critical">CRITICAL</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-5678 - Cisco ASA Auth Bypass</span><span class="severity sev-critical">CRITICAL</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-9012 - Fortinet SSL VPN Overflow</span><span class="severity sev-high">HIGH</span></div>
+                                <div class="feed-item"><span class="title">CVE-2026-3456 - Palo Alto PAN-OS XSS</span><span class="severity sev-medium">MEDIUM</span></div>
+                            </div>
+                            <div class="feed-card">
+                                <h3>Active Campaigns</h3>
+                                <div class="feed-item"><span class="title">APT29 - SolarStorm 2.0</span><span class="severity sev-critical">ACTIVE</span></div>
+                                <div class="feed-item"><span class="title">LockBit 4.0 Resurgence</span><span class="severity sev-high">ACTIVE</span></div>
+                                <div class="feed-item"><span class="title">Lazarus - CryptoHeist</span><span class="severity sev-high">ACTIVE</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showStyle(id) {
+            document.querySelectorAll('.preview-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('style-' + id).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

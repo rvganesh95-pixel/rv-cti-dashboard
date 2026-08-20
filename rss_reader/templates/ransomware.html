@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ransomware Victims by Sector - CTI Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/neo-theme.css">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --accent: #4f46e5;
+            --accent-dim: #6366f1;
+            --accent-glow: rgba(79, 70, 229, 0.08);
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #059669;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-active: rgba(79, 70, 229, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(26, 26, 46, 0.02) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(26, 26, 46, 0.01) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(26, 26, 46, 0.01) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 200px;
+            background: var(--bg-primary);
+            border-right: none;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0;
+            z-index: 150;
+            box-shadow: none; border-right: 1px solid var(--border);
+        }
+
+        .sidebar .sidebar-brand {
+            padding: 0 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .sidebar .sidebar-brand h2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .sidebar .sidebar-brand p {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+                .nav-section-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 0.8rem 1rem 0.3rem;
+            margin-top: 0.5rem;
+        }
+        .nav-section-title:first-child {
+            margin-top: 0;
+        }
+
+        .sidebar .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            padding: 0 0.75rem;
+        }
+
+        .sidebar .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .sidebar .nav-links a:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar .nav-links a.active {
+            background: var(--bg-primary);
+            color: var(--accent);
+            font-weight: 600;
+            border: none;
+            background: rgba(79, 70, 229, 0.06);
+        }
+
+        .app-content {
+            margin-left: 200px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; padding: 1rem 0; }
+            .sidebar .sidebar-brand { display: none; }
+            .sidebar .nav-links a span { display: none; }
+            .sidebar .nav-links a { justify-content: center; padding: 0.6rem; }
+            .app-content { margin-left: 60px; }
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .brand h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .brand .tagline {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-box input {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            border-radius: 8px;
+            width: 300px;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--border-active);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-dim);
+            transform: translateY(-1px);
+        }
+
+        .stats-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0.6rem 2rem;
+        }
+
+        .stats-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+        }
+
+        .stat-label { color: var(--text-muted); }
+        .stat-value { font-weight: 600; color: var(--text-primary); }
+
+        .stat-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .stat-dot.live { animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .filter-bar {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .filter-chips {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 500;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip:hover { border-color: var(--border-active); }
+
+        .chip.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .chip-count {
+            margin-left: 0.3rem;
+            opacity: 0.7;
+        }
+
+        .main {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .cyber-loader {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Victim cards */
+        .victims-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+
+        .victim-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .victim-card:hover {
+            border-color: var(--border-active);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transform: translateY(-2px);
+        }
+
+        .victim-card .victim-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .victim-card .victim-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .victim-card .meta-tag {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .meta-tag.group {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .meta-tag.sector {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .meta-tag.country {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .meta-tag.date {
+            background: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        .victim-card .victim-details {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .view-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .article-count {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Sector select */
+        .sector-select {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .sector-select:focus {
+            outline: none;
+            border-color: var(--border-active);
+        }
+
+        /* Table view */
+        .victims-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .victims-table th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--border);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .victims-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .victims-table tr:hover td {
+            background: var(--bg-hover);
+        }
+
+        .group-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="cyber-loader"></div>
+            <p class="loading-text">Fetching ransomware victim data...</p>
+        </div>
+
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <h2>🛡️ CTI Dashboard</h2>
+                <p>Threat Intel</p>
+            </div>
+            <div class="nav-links">
+                <div class="nav-section-title">OVERVIEW</div>
+                <a href="/"><span>🛡️</span> <span>Horizon Scans</span></a>
+                <a href="/vulnerabilities"><span>⚠️</span> <span>Vulnerabilities</span></a>
+                <a href="/npm"><span>📦</span> <span>NPM</span></a>
+                <a href="/ransomware" class="active"><span>💀</span> <span>Ransomware</span></a>
+                <a href="/adversaries"><span>👥</span> <span>Adversaries</span></a>
+                <a href="/knowledgegraph"><span>🕸️</span> <span>Knowledge Graph</span></a>
+                <div class="nav-section-title">ANALYSIS</div>
+                <a href="/osint"><span>🔎</span> <span>OSINT</span></a>
+                <a href="/sandbox"><span>🧪</span> <span>Sandbox</span></a>
+            </div>
+        </nav>
+
+        <div class="app-content">
+        <header class="header">
+            <div class="header-content">
+                <div class="brand">
+                    <div class="brand-icon">💀</div>
+                    <div>
+                        <h1>Ransomware Victims by Sector</h1>
+                        <p class="tagline">Powered by Ransomware.live API</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search victims, groups, countries..." autocomplete="off">
+                    </div>
+                    <select class="sector-select" id="sectorSelect" onchange="loadVictims()">
+                        <option value="">All Recent Victims</option>
+                        <option value="Telecommunication" selected>Telecommunication</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Agriculture and Food Production">Agriculture and Food Production</option>
+                        <option value="Business Services">Business Services</option>
+                        <option value="Construction">Construction</option>
+                        <option value="Consumer Services">Consumer Services</option>
+                        <option value="Education">Education</option>
+                        <option value="Energy">Energy</option>
+                        <option value="Financial Services">Financial Services</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Hospitality and Tourism">Hospitality and Tourism</option>
+                        <option value="Manufacturing">Manufacturing</option>
+                        <option value="Transportation/Logistics">Transportation/Logistics</option>
+                    </select>
+                    <button class="btn btn-primary" id="refreshBtn" onclick="loadVictims()">
+                        ⟳ Refresh
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stats-content">
+                <div class="stat-item">
+                    <span class="stat-dot live"></span>
+                    <span class="stat-label">Status:</span>
+                    <span class="stat-value" id="statusText">Ready</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Victims:</span>
+                    <span class="stat-value" id="totalVictims">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Groups:</span>
+                    <span class="stat-value" id="totalGroups">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Last Fetch:</span>
+                    <span class="stat-value" id="lastFetch">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-chips" id="filterChips">
+                <span class="chip active" data-group="all" onclick="filterByGroup('all', this)">All Groups</span>
+            </div>
+        </div>
+
+        <main class="main">
+            <div class="view-controls">
+                <div class="article-count" id="victimCount"></div>
+            </div>
+            <div id="victimsContainer"></div>
+        </main>
+        </div>
+    </div>
+
+    <script>
+        let allVictims = [];
+        let filteredVictims = [];
+        let activeGroup = 'all';
+
+        async function loadVictims() {
+            const overlay = document.getElementById('loadingOverlay');
+            const btn = document.getElementById('refreshBtn');
+            overlay.classList.remove('hidden');
+            btn.disabled = true;
+
+            const sector = document.getElementById('sectorSelect').value;
+            const url = sector ? `/api/ransomware/victims?sector=${encodeURIComponent(sector)}` : '/api/ransomware/victims';
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.error) {
+                    document.getElementById('statusText').textContent = 'Error';
+                    overlay.classList.add('hidden');
+                    btn.disabled = false;
+                    return;
+                }
+
+                allVictims = Array.isArray(data) ? data : [];
+                document.getElementById('totalVictims').textContent = allVictims.length;
+
+                // Count unique groups
+                const groups = new Set(allVictims.map(v => v.group_name || v.group || 'Unknown'));
+                document.getElementById('totalGroups').textContent = groups.size;
+                document.getElementById('lastFetch').textContent = new Date().toLocaleTimeString();
+                document.getElementById('statusText').textContent = 'Live';
+
+                buildGroupChips(groups);
+                filterAndRender();
+            } catch (err) {
+                document.getElementById('statusText').textContent = 'Error';
+                console.error(err);
+            }
+
+            overlay.classList.add('hidden');
+            btn.disabled = false;
+        }
+
+        function buildGroupChips(groups) {
+            const container = document.getElementById('filterChips');
+            container.innerHTML = '<span class="chip active" data-group="all" onclick="filterByGroup(\'all\', this)">All Groups</span>';
+            
+            // Count victims per group
+            const groupCounts = {};
+            allVictims.forEach(v => {
+                const g = v.group_name || v.group || 'Unknown';
+                groupCounts[g] = (groupCounts[g] || 0) + 1;
+            });
+
+            // Sort by count descending
+            const sorted = Object.entries(groupCounts).sort((a, b) => b[1] - a[1]);
+            sorted.slice(0, 20).forEach(([name, count]) => {
+                const el = document.createElement('span');
+                el.className = 'chip';
+                el.dataset.group = name;
+                el.onclick = function() { filterByGroup(name, this); };
+                el.innerHTML = escapeHtml(name) + '<span class="chip-count">' + count + '</span>';
+                container.appendChild(el);
+            });
+        }
+
+        function filterByGroup(group, el) {
+            activeGroup = group;
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            filterAndRender();
+        }
+
+        function filterAndRender() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            filteredVictims = allVictims.filter(v => {
+                const name = (v.victim || v.post_title || '').toLowerCase();
+                const group = (v.group_name || v.group || '').toLowerCase();
+                const country = (v.country || '').toLowerCase();
+                const sector = (v.activity || v.sector || '').toLowerCase();
+
+                const matchGroup = activeGroup === 'all' || group === activeGroup.toLowerCase();
+                const matchQuery = !query ||
+                    name.includes(query) ||
+                    group.includes(query) ||
+                    country.includes(query) ||
+                    sector.includes(query);
+                return matchGroup && matchQuery;
+            });
+
+            document.getElementById('victimCount').innerHTML = 'Showing <strong>' + filteredVictims.length + '</strong> of ' + allVictims.length + ' victims';
+            renderVictims();
+        }
+
+        function renderVictims() {
+            const container = document.getElementById('victimsContainer');
+            if (filteredVictims.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>No victims match your filter</p></div>';
+                return;
+            }
+
+            let html = '<table class="victims-table"><thead><tr>';
+            html += '<th>Victim</th><th>Group</th><th>Sector</th><th>Country</th><th>Date</th>';
+            html += '</tr></thead><tbody>';
+
+            filteredVictims.slice(0, 200).forEach(v => {
+                const name = v.victim || v.post_title || 'Unknown';
+                const group = v.group_name || v.group || 'Unknown';
+                const sector = v.activity || v.sector || '-';
+                const country = v.country || '-';
+                const date = v.attackdate || v.discovered || v.published || '-';
+
+                html += '<tr>';
+                html += '<td><strong>' + escapeHtml(name) + '</strong></td>';
+                html += '<td><span class="group-badge">' + escapeHtml(group) + '</span></td>';
+                html += '<td>' + escapeHtml(sector) + '</td>';
+                html += '<td>' + escapeHtml(country) + '</td>';
+                html += '<td>' + escapeHtml(date) + '</td>';
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        // Search input
+        document.getElementById('searchInput').addEventListener('input', () => {
+            filterAndRender();
+        });
+
+        // Keyboard shortcut
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+
+        // Auto-load on page open
+        loadVictims();
+    </script>
+</body>
+</html>

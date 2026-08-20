@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSINT - CTI Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/neo-theme.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --accent: #4f46e5;
+            --accent-dim: #6366f1;
+            --accent-glow: rgba(79, 70, 229, 0.08);
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #059669;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-active: rgba(79, 70, 229, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 200px;
+            background: var(--bg-primary);
+            border-right: none;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0;
+            z-index: 150;
+            box-shadow: none; border-right: 1px solid var(--border);
+        }
+
+        .sidebar .sidebar-brand {
+            padding: 0 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .sidebar .sidebar-brand h2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .sidebar .sidebar-brand p {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+                .nav-section-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 0.8rem 1rem 0.3rem;
+            margin-top: 0.5rem;
+        }
+        .nav-section-title:first-child {
+            margin-top: 0;
+        }
+
+        .sidebar .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            padding: 0 0.75rem;
+        }
+
+        .sidebar .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .sidebar .nav-links a:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar .nav-links a.active {
+            background: var(--bg-primary);
+            color: var(--accent);
+            font-weight: 600;
+            border: none;
+            background: rgba(79, 70, 229, 0.06);
+        }
+
+        .app-content {
+            margin-left: 200px;
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; padding: 1rem 0; }
+            .sidebar .sidebar-brand { display: none; }
+            .sidebar .nav-links a span { display: none; }
+            .sidebar .nav-links a { justify-content: center; padding: 0.6rem; }
+            .app-content { margin-left: 60px; }
+        }
+
+        .header {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .brand h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .brand .tagline {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        /* Tabs */
+        .tab-nav {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+        }
+
+        .tab-btn {
+            padding: 0.7rem 1.4rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: var(--bg-primary);
+            color: var(--text-muted);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            background: rgba(79, 70, 229, 0.06);
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* URLscan section */
+        .scan-input-section {
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .scan-form {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .scan-form input {
+            flex: 1;
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            border: none;
+            font-size: 0.9rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            background: rgba(79, 70, 229, 0.06);
+        }
+
+        .scan-form input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--accent-glow); border-color: var(--accent);
+        }
+
+        .scan-form input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background: var(--bg-primary);
+            color: var(--accent);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .btn-primary:hover {
+            background: rgba(79, 70, 229, 0.06);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .vt-mode-btn.active {
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        /* Status messages */
+        .status-msg {
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .status-msg.show { display: block; }
+        .status-msg.info { background: rgba(91, 33, 182, 0.08); color: var(--accent); }
+        .status-msg.error { background: rgba(220, 38, 38, 0.08); color: var(--danger); }
+        .status-msg.success { background: rgba(5, 150, 105, 0.08); color: var(--success); }
+
+        /* Results */
+        .results-container {
+            margin-top: 1.5rem;
+        }
+
+        .result-card {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid var(--border);
+        }
+
+        .result-card h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--accent);
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .result-item {
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+        }
+
+        .result-item label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .result-item span {
+            font-size: 0.82rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        .screenshot-container {
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .screenshot-container img {
+            max-width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid var(--border);
+        }
+
+        .lists-section {
+            margin-top: 1rem;
+        }
+
+        .lists-section h4 {
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .tag {
+            padding: 0.3rem 0.6rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+        }
+
+        .tag.malicious {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+        }
+
+        .tag.safe {
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--success);
+        }
+
+        .verdict-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .verdict-badge.malicious {
+            background: rgba(220, 38, 38, 0.12);
+            color: var(--danger);
+        }
+
+        .verdict-badge.clean {
+            background: rgba(5, 150, 105, 0.12);
+            color: var(--success);
+        }
+
+        .verdict-badge.unknown {
+            background: rgba(217, 119, 6, 0.12);
+            color: var(--warning);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <h2>🛡️ CTI Dashboard</h2>
+                <p>Threat Intel</p>
+            </div>
+            <div class="nav-links">
+                <div class="nav-section-title">OVERVIEW</div>
+                <a href="/"><span>🛡️</span> <span>Horizon Scans</span></a>
+                <a href="/vulnerabilities"><span>⚠️</span> <span>Vulnerabilities</span></a>
+                <a href="/npm"><span>📦</span> <span>NPM</span></a>
+                <a href="/ransomware"><span>💀</span> <span>Ransomware</span></a>
+                <a href="/adversaries"><span>👥</span> <span>Adversaries</span></a>
+                <a href="/knowledgegraph"><span>🕸️</span> <span>Knowledge Graph</span></a>
+                <div class="nav-section-title">ANALYSIS</div>
+                <a href="/osint" class="active"><span>🔎</span> <span>OSINT</span></a>
+                <a href="/sandbox"><span>🧪</span> <span>Sandbox</span></a>
+            </div>
+        </nav>
+
+        <div class="app-content">
+            <header class="header">
+                <div class="header-content">
+                    <div class="brand">
+                        <div class="brand-icon">🔎</div>
+                        <div>
+                            <h1>OSINT Tools</h1>
+                            <p class="tagline">Open Source Intelligence</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Sub-tabs -->
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="urlscanio" style="font-size:0.9rem;">🌐 URLscan.io</button>
+                <button class="tab-btn" data-tab="virustotal" style="font-size:0.9rem;">🦠 VirusTotal</button>
+                <button class="tab-btn" data-tab="abuseipdb" style="font-size:0.9rem;">🚫 AbuseIPDB</button>
+            </div>
+
+            <!-- VirusTotal Tab -->
+            <div class="tab-content" id="tab-virustotal">
+                <div class="scan-input-section">
+                    <!-- Sub-mode toggle: IOC Lookup vs File Submit -->
+                    <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem;">
+                        <button class="btn btn-primary vt-mode-btn active" data-vtmode="lookup" onclick="switchVTMode('lookup')" style="font-size:0.78rem;">🔍 IOC Lookup</button>
+                        <button class="btn btn-primary vt-mode-btn" data-vtmode="file" onclick="switchVTMode('file')" style="font-size:0.78rem;">📁 Submit File</button>
+                    </div>
+
+                    <!-- IOC Lookup Mode -->
+                    <div id="vt-mode-lookup">
+                        <div class="scan-form">
+                            <input type="text" id="vt-ioc-input" placeholder="Enter an IOC (IP, domain, hash, or URL)" />
+                            <select id="vt-type-select" style="padding: 0.8rem 1rem; border-radius: 12px; border: none; font-size: 0.85rem; background: rgba(79, 70, 229, 0.06); color: var(--text-primary); cursor: pointer;">
+                                <option value="auto">Auto-detect</option>
+                                <option value="ipv4">IP Address</option>
+                                <option value="domain">Domain</option>
+                                <option value="SHA256">SHA256</option>
+                                <option value="SHA1">SHA1</option>
+                                <option value="MD5">MD5</option>
+                                <option value="url">URL</option>
+                            </select>
+                            <button class="btn btn-primary" id="vt-lookup-btn" onclick="vtLookup()">
+                                🔍 Lookup
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- File Submit Mode -->
+                    <div id="vt-mode-file" style="display:none;">
+                        <div style="border: 2px dashed var(--border); border-radius: 16px; padding: 2rem; text-align: center; background: var(--bg-secondary); margin-bottom: 1rem; transition: all 0.2s;" id="vt-drop-zone">
+                            <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">📄</p>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Drag & drop a file here or click to browse</p>
+                            <p style="font-size: 0.72rem; color: var(--text-muted);">Max file size: 32 MB</p>
+                            <input type="file" id="vt-file-input" style="display:none;" onchange="vtFileSelected()" />
+                        </div>
+                        <div id="vt-file-info" style="display:none; padding: 0.75rem 1rem; background: rgba(79, 70, 229, 0.06); border-radius: 12px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                            <span id="vt-file-name" style="font-size: 0.82rem; color: var(--text-primary); font-weight: 500;"></span>
+                            <button class="btn btn-primary" onclick="vtClearFile()" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">✕ Clear</button>
+                        </div>
+                        <button class="btn btn-primary" id="vt-submit-file-btn" onclick="vtSubmitFile()" style="width: 100%; justify-content: center;">
+                            🚀 Submit to VirusTotal
+                        </button>
+                    </div>
+
+                    <div class="status-msg" id="vt-status-msg"></div>
+
+                    <div class="results-container" id="vt-results-container"></div>
+                </div>
+            </div>
+
+            <!-- URLscan.io Tab -->
+            <div class="tab-content active" id="tab-urlscanio">
+                <div class="scan-input-section">
+                    <div class="scan-form">
+                        <input type="text" id="url-input" placeholder="Enter a URL to scan (e.g., https://example.com)" />
+                        <button class="btn btn-primary" id="scan-btn" onclick="submitScan()">
+                            🔍 Scan
+                        </button>
+                    </div>
+
+                    <div class="status-msg" id="status-msg"></div>
+
+                    <div class="results-container" id="results-container"></div>
+
+                    <!-- Extract Results section -->
+                    <div id="extract-results-section" style="display:none; margin-top: 1.5rem;">
+                        <div class="result-card" style="text-align:center;">
+                            <h3>📄 Extract Results</h3>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin: 0.5rem 0 1rem;">Download the complete scan results as a PDF report</p>
+                            <button class="btn btn-primary" id="download-pdf-btn" onclick="generatePDF()" style="margin:0 auto;">
+                                📥 Download PDF Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AbuseIPDB Tab -->
+            <div class="tab-content" id="tab-abuseipdb">
+                <div class="scan-input-section">
+                    <div class="scan-form">
+                        <input type="text" id="abuse-ip-input" placeholder="Enter an IP address to check (e.g., 8.8.8.8)" />
+                        <select id="abuse-maxage-select" style="padding: 0.8rem 1rem; border-radius: 12px; border: none; font-size: 0.85rem; background: rgba(79, 70, 229, 0.06); color: var(--text-primary); cursor: pointer;">
+                            <option value="30">Last 30 days</option>
+                            <option value="90" selected>Last 90 days</option>
+                            <option value="180">Last 180 days</option>
+                            <option value="365">Last 365 days</option>
+                        </select>
+                        <button class="btn btn-primary" id="abuse-check-btn" onclick="abuseCheck()">
+                            🔍 Check IP
+                        </button>
+                    </div>
+
+                    <div class="status-msg" id="abuse-status-msg"></div>
+
+                    <div class="results-container" id="abuse-results-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('status-msg');
+            el.textContent = msg;
+            el.className = 'status-msg show ' + type;
+        }
+
+        function hideStatus() {
+            document.getElementById('status-msg').className = 'status-msg';
+        }
+
+        async function submitScan() {
+            const urlInput = document.getElementById('url-input');
+            const url = urlInput.value.trim();
+            const scanBtn = document.getElementById('scan-btn');
+
+            if (!url) {
+                showStatus('Please enter a URL to scan.', 'error');
+                return;
+            }
+
+            // Basic URL validation
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                showStatus('URL must start with http:// or https://', 'error');
+                return;
+            }
+
+            scanBtn.disabled = true;
+            scanBtn.innerHTML = '<span class="loading-spinner"></span> Submitting...';
+            showStatus('Submitting URL to urlscan.io...', 'info');
+            document.getElementById('results-container').innerHTML = '';
+
+            try {
+                const resp = await fetch('/api/urlscan/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    showStatus('Error: ' + (data.error || 'Failed to submit scan'), 'error');
+                    scanBtn.disabled = false;
+                    scanBtn.innerHTML = '🔍 Scan';
+                    return;
+                }
+
+                showStatus('Scan submitted! Waiting for results (this may take 15-30 seconds)...', 'info');
+                scanBtn.innerHTML = '<span class="loading-spinner"></span> Processing...';
+
+                // Poll for results
+                const uuid = data.uuid;
+                pollForResults(uuid, scanBtn);
+
+            } catch (err) {
+                showStatus('Network error: ' + err.message, 'error');
+                scanBtn.disabled = false;
+                scanBtn.innerHTML = '🔍 Scan';
+            }
+        }
+
+        async function pollForResults(uuid, scanBtn) {
+            let attempts = 0;
+            const maxAttempts = 20;
+
+            const poll = async () => {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    showStatus('Scan is taking longer than expected. Try refreshing in a minute.', 'error');
+                    scanBtn.disabled = false;
+                    scanBtn.innerHTML = '🔍 Scan';
+                    return;
+                }
+
+                try {
+                    const resp = await fetch('/api/urlscan/result/' + uuid);
+                    
+                    if (resp.status === 202) {
+                        // Still processing
+                        setTimeout(poll, 5000);
+                        return;
+                    }
+
+                    if (!resp.ok) {
+                        const err = await resp.json();
+                        showStatus('Error fetching results: ' + (err.error || 'Unknown error'), 'error');
+                        scanBtn.disabled = false;
+                        scanBtn.innerHTML = '🔍 Scan';
+                        return;
+                    }
+
+                    const data = await resp.json();
+                    showStatus('Scan complete!', 'success');
+                    scanBtn.disabled = false;
+                    scanBtn.innerHTML = '🔍 Scan';
+                    displayResults(data);
+
+                } catch (err) {
+                    setTimeout(poll, 5000);
+                }
+            };
+
+            // Wait 10 seconds before first poll
+            setTimeout(poll, 10000);
+        }
+
+        function displayResults(data) {
+            const container = document.getElementById('results-container');
+            const page = data.page || {};
+            const task = data.task || {};
+            const stats = data.stats || {};
+            const lists = data.lists || {};
+            const verdicts = data.verdicts || {};
+
+            // Determine overall verdict
+            let overallVerdict = 'unknown';
+            let verdictLabel = 'Unknown';
+            if (verdicts.overall) {
+                if (verdicts.overall.malicious) {
+                    overallVerdict = 'malicious';
+                    verdictLabel = 'Malicious';
+                } else {
+                    overallVerdict = 'clean';
+                    verdictLabel = 'Clean';
+                }
+            }
+
+            let html = '';
+
+            // Verdict card
+            html += `
+                <div class="result-card">
+                    <h3>Scan Verdict</h3>
+                    <span class="verdict-badge ${overallVerdict}">${verdictLabel}</span>
+                    ${verdicts.overall && verdicts.overall.score !== undefined ? 
+                        `<span style="margin-left:1rem; font-size:0.8rem; color:var(--text-muted)">Score: ${verdicts.overall.score}/100</span>` : ''}
+                </div>
+            `;
+
+            // Page info card
+            html += `
+                <div class="result-card">
+                    <h3>Page Information</h3>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <label>URL</label>
+                            <span>${escapeHtml(page.url || task.url || 'N/A')}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Domain</label>
+                            <span>${escapeHtml(page.domain || 'N/A')}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>IP</label>
+                            <span>${escapeHtml(page.ip || 'N/A')}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Country</label>
+                            <span>${escapeHtml(page.country || 'N/A')}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Server</label>
+                            <span>${escapeHtml(page.server || 'N/A')}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Title</label>
+                            <span>${escapeHtml(page.title || 'N/A')}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Status Code</label>
+                            <span>${page.status || 'N/A'}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>ASN</label>
+                            <span>${escapeHtml(page.asn || 'N/A')}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Stats card
+            if (stats) {
+                html += `
+                    <div class="result-card">
+                        <h3>Request Statistics</h3>
+                        <div class="result-grid">
+                            <div class="result-item">
+                                <label>Total Requests</label>
+                                <span>${stats.requests || 0}</span>
+                            </div>
+                            <div class="result-item">
+                                <label>Unique IPs</label>
+                                <span>${stats.ips || 0}</span>
+                            </div>
+                            <div class="result-item">
+                                <label>Unique Domains</label>
+                                <span>${stats.domains || 0}</span>
+                            </div>
+                            <div class="result-item">
+                                <label>Encrypted Requests</label>
+                                <span>${stats.secureRequests || 0} / ${stats.requests || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Lists - IPs, Domains, etc.
+            if (lists) {
+                html += `<div class="result-card"><h3>Detected Entities</h3>`;
+
+                if (lists.ips && lists.ips.length > 0) {
+                    html += `<div class="lists-section"><h4>IPs (${lists.ips.length})</h4><div class="tag-list">`;
+                    lists.ips.slice(0, 20).forEach(ip => {
+                        html += `<span class="tag">${escapeHtml(ip)}</span>`;
+                    });
+                    if (lists.ips.length > 20) html += `<span class="tag">+${lists.ips.length - 20} more</span>`;
+                    html += `</div></div>`;
+                }
+
+                if (lists.domains && lists.domains.length > 0) {
+                    html += `<div class="lists-section"><h4>Domains (${lists.domains.length})</h4><div class="tag-list">`;
+                    lists.domains.slice(0, 20).forEach(d => {
+                        html += `<span class="tag">${escapeHtml(d)}</span>`;
+                    });
+                    if (lists.domains.length > 20) html += `<span class="tag">+${lists.domains.length - 20} more</span>`;
+                    html += `</div></div>`;
+                }
+
+                if (lists.urls && lists.urls.length > 0) {
+                    html += `<div class="lists-section"><h4>URLs (${lists.urls.length})</h4><div class="tag-list">`;
+                    lists.urls.slice(0, 10).forEach(u => {
+                        html += `<span class="tag">${escapeHtml(u)}</span>`;
+                    });
+                    if (lists.urls.length > 10) html += `<span class="tag">+${lists.urls.length - 10} more</span>`;
+                    html += `</div></div>`;
+                }
+
+                if (lists.certificates && lists.certificates.length > 0) {
+                    html += `<div class="lists-section"><h4>Certificates</h4><div class="tag-list">`;
+                    lists.certificates.slice(0, 5).forEach(c => {
+                        html += `<span class="tag">${escapeHtml(c.subject || c)}</span>`;
+                    });
+                    html += `</div></div>`;
+                }
+
+                html += `</div>`;
+            }
+
+            // Screenshot
+            if (data.task && data.task.screenshotURL) {
+                html += `
+                    <div class="result-card">
+                        <h3>Screenshot</h3>
+                        <div class="screenshot-container">
+                            <img src="${escapeHtml(data.task.screenshotURL)}" alt="Page Screenshot" loading="lazy" />
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Link to full report
+            if (data.task && data.task.reportURL) {
+                html += `
+                    <div class="result-card">
+                        <h3>Full Report</h3>
+                        <a href="${escapeHtml(data.task.reportURL)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); font-size: 0.85rem; text-decoration: underline;">
+                            View full report on urlscan.io ↗
+                        </a>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+
+            // Show Extract Results section
+            document.getElementById('extract-results-section').style.display = 'block';
+
+            // Store scan data for PDF generation
+            window._lastScanData = data;
+        }
+
+        async function generatePDF() {
+            const btn = document.getElementById('download-pdf-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Generating PDF...';
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                const data = window._lastScanData;
+                const page = data.page || {};
+                const task = data.task || {};
+                const stats = data.stats || {};
+                const lists = data.lists || {};
+                const verdicts = data.verdicts || {};
+
+                let y = 15;
+                const leftMargin = 15;
+                const pageWidth = 180;
+
+                // Title
+                doc.setFontSize(18);
+                doc.setFont('helvetica', 'bold');
+                doc.text('URLscan.io Scan Report', leftMargin, y);
+                y += 8;
+
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(100);
+                doc.text('Generated: ' + new Date().toLocaleString(), leftMargin, y);
+                y += 10;
+
+                // Verdict
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(0);
+                doc.text('Scan Verdict', leftMargin, y);
+                y += 6;
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                let verdictText = 'Unknown';
+                if (verdicts.overall) {
+                    verdictText = verdicts.overall.malicious ? 'MALICIOUS' : 'CLEAN';
+                    if (verdicts.overall.score !== undefined) verdictText += ' (Score: ' + verdicts.overall.score + '/100)';
+                }
+                doc.text('Verdict: ' + verdictText, leftMargin, y);
+                y += 10;
+
+                // Page Information
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Page Information', leftMargin, y);
+                y += 7;
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+
+                const pageInfo = [
+                    ['URL', page.url || task.url || 'N/A'],
+                    ['Domain', page.domain || 'N/A'],
+                    ['IP', page.ip || 'N/A'],
+                    ['Country', page.country || 'N/A'],
+                    ['Server', page.server || 'N/A'],
+                    ['Title', page.title || 'N/A'],
+                    ['Status Code', String(page.status || 'N/A')],
+                    ['ASN', page.asn || 'N/A'],
+                ];
+
+                pageInfo.forEach(([label, value]) => {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(label + ':', leftMargin, y);
+                    doc.setFont('helvetica', 'normal');
+                    const lines = doc.splitTextToSize(String(value), pageWidth - 35);
+                    doc.text(lines, leftMargin + 35, y);
+                    y += lines.length * 4.5 + 2;
+                    if (y > 270) { doc.addPage(); y = 15; }
+                });
+                y += 5;
+
+                // Request Statistics
+                if (stats) {
+                    if (y > 250) { doc.addPage(); y = 15; }
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Request Statistics', leftMargin, y);
+                    y += 7;
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text('Total Requests: ' + (stats.requests || 0), leftMargin, y); y += 5;
+                    doc.text('Unique IPs: ' + (stats.ips || 0), leftMargin, y); y += 5;
+                    doc.text('Unique Domains: ' + (stats.domains || 0), leftMargin, y); y += 5;
+                    doc.text('Encrypted Requests: ' + (stats.secureRequests || 0) + ' / ' + (stats.requests || 0), leftMargin, y); y += 10;
+                }
+
+                // Detected Entities
+                if (lists) {
+                    if (y > 240) { doc.addPage(); y = 15; }
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Detected Entities', leftMargin, y);
+                    y += 7;
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'normal');
+
+                    if (lists.ips && lists.ips.length > 0) {
+                        doc.setFont('helvetica', 'bold');
+                        doc.text('IPs (' + lists.ips.length + '):', leftMargin, y); y += 5;
+                        doc.setFont('helvetica', 'normal');
+                        const ipText = lists.ips.slice(0, 30).join(', ');
+                        const ipLines = doc.splitTextToSize(ipText, pageWidth);
+                        doc.text(ipLines, leftMargin, y);
+                        y += ipLines.length * 4.5 + 3;
+                        if (y > 270) { doc.addPage(); y = 15; }
+                    }
+
+                    if (lists.domains && lists.domains.length > 0) {
+                        doc.setFont('helvetica', 'bold');
+                        doc.text('Domains (' + lists.domains.length + '):', leftMargin, y); y += 5;
+                        doc.setFont('helvetica', 'normal');
+                        const domText = lists.domains.slice(0, 30).join(', ');
+                        const domLines = doc.splitTextToSize(domText, pageWidth);
+                        doc.text(domLines, leftMargin, y);
+                        y += domLines.length * 4.5 + 3;
+                        if (y > 270) { doc.addPage(); y = 15; }
+                    }
+
+                    if (lists.urls && lists.urls.length > 0) {
+                        doc.setFont('helvetica', 'bold');
+                        doc.text('URLs (' + lists.urls.length + '):', leftMargin, y); y += 5;
+                        doc.setFont('helvetica', 'normal');
+                        lists.urls.slice(0, 15).forEach(u => {
+                            const uLines = doc.splitTextToSize(u, pageWidth);
+                            doc.text(uLines, leftMargin, y);
+                            y += uLines.length * 4.5 + 1;
+                            if (y > 270) { doc.addPage(); y = 15; }
+                        });
+                        y += 3;
+                    }
+                }
+
+                // Screenshot
+                if (task.screenshotURL || task.uuid) {
+                    if (y > 200) { doc.addPage(); y = 15; }
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Screenshot', leftMargin, y);
+                    y += 7;
+
+                    try {
+                        // Use local proxy to avoid CORS
+                        const screenshotUuid = task.uuid || task.screenshotURL.split('/screenshots/')[1]?.replace('.png','');
+                        const proxyUrl = '/api/urlscan/screenshot/' + screenshotUuid;
+                        const screenshotResp = await fetch(proxyUrl);
+                        if (!screenshotResp.ok) throw new Error('Screenshot not available');
+                        const blob = await screenshotResp.blob();
+                        const imgDataUrl = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(blob);
+                        });
+                        const img = new Image();
+                        await new Promise((resolve, reject) => {
+                            img.onload = resolve;
+                            img.onerror = reject;
+                            img.src = imgDataUrl;
+                        });
+                        const ratio = img.height / img.width;
+                        const imgWidth = Math.min(pageWidth, 160);
+                        const imgHeight = imgWidth * ratio;
+                        if (y + imgHeight > 280) { doc.addPage(); y = 15; }
+                        doc.addImage(imgDataUrl, 'PNG', leftMargin, y, imgWidth, imgHeight);
+                        y += imgHeight + 5;
+                    } catch(e) {
+                        doc.setFontSize(9);
+                        doc.setFont('helvetica', 'italic');
+                        doc.text('(Screenshot could not be embedded)', leftMargin, y);
+                        y += 5;
+                    }
+                }
+
+                // Report link
+                if (task.reportURL) {
+                    if (y > 270) { doc.addPage(); y = 15; }
+                    y += 5;
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(91, 33, 182);
+                    doc.textWithLink('Full report: ' + task.reportURL, leftMargin, y, { url: task.reportURL });
+                    doc.setTextColor(0);
+                }
+
+                // Save
+                const domain = page.domain || 'scan';
+                doc.save('urlscan_report_' + domain + '_' + new Date().toISOString().slice(0,10) + '.pdf');
+
+            } catch (err) {
+                alert('Failed to generate PDF: ' + err.message);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '📥 Download PDF Report';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('url-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitScan();
+        });
+
+        document.getElementById('vt-ioc-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') vtLookup();
+        });
+
+        // --- VirusTotal Mode Switch ---
+        function switchVTMode(mode) {
+            document.querySelectorAll('.vt-mode-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.vt-mode-btn[data-vtmode="${mode}"]`).classList.add('active');
+            document.getElementById('vt-mode-lookup').style.display = mode === 'lookup' ? 'block' : 'none';
+            document.getElementById('vt-mode-file').style.display = mode === 'file' ? 'block' : 'none';
+            vtHideStatus();
+            document.getElementById('vt-results-container').innerHTML = '';
+        }
+
+        // --- VirusTotal File Drop Zone ---
+        (function() {
+            const dropZone = document.getElementById('vt-drop-zone');
+            const fileInput = document.getElementById('vt-file-input');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--accent)';
+                dropZone.style.background = 'rgba(79, 70, 229, 0.04)';
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.borderColor = 'var(--border)';
+                dropZone.style.background = 'var(--bg-secondary)';
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border)';
+                dropZone.style.background = 'var(--bg-secondary)';
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    vtFileSelected();
+                }
+            });
+        })();
+
+        function vtFileSelected() {
+            const fileInput = document.getElementById('vt-file-input');
+            const fileInfo = document.getElementById('vt-file-info');
+            const fileName = document.getElementById('vt-file-name');
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                fileName.textContent = `${file.name} (${sizeMB} MB)`;
+                fileInfo.style.display = 'flex';
+            }
+        }
+
+        function vtClearFile() {
+            document.getElementById('vt-file-input').value = '';
+            document.getElementById('vt-file-info').style.display = 'none';
+        }
+
+        async function vtSubmitFile() {
+            const fileInput = document.getElementById('vt-file-input');
+            const btn = document.getElementById('vt-submit-file-btn');
+
+            if (!fileInput.files.length) {
+                vtShowStatus('Please select a file to submit.', 'error');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (file.size > 32 * 1024 * 1024) {
+                vtShowStatus('File too large. Maximum size is 32 MB.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Submitting...';
+            vtShowStatus('Uploading file to VirusTotal...', 'info');
+            document.getElementById('vt-results-container').innerHTML = '';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const resp = await fetch('/api/vt/submit-file', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    vtShowStatus('Error: ' + (data.error || 'Failed to submit file'), 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '🚀 Submit to VirusTotal';
+                    return;
+                }
+
+                vtShowStatus('File submitted! Waiting for analysis results (this may take 30-60 seconds)...', 'info');
+                btn.innerHTML = '<span class="loading-spinner"></span> Analyzing...';
+
+                // Poll for results using the analysis ID
+                vtPollFileResults(data.analysis_id, data.sha256, btn);
+
+            } catch (err) {
+                vtShowStatus('Network error: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '🚀 Submit to VirusTotal';
+            }
+        }
+
+        async function vtPollFileResults(analysisId, sha256, btn) {
+            let attempts = 0;
+            const maxAttempts = 24; // ~2 minutes
+
+            const poll = async () => {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    vtShowStatus('Analysis is taking longer than expected. You can look up the hash manually: ' + sha256, 'info');
+                    btn.disabled = false;
+                    btn.innerHTML = '🚀 Submit to VirusTotal';
+                    return;
+                }
+
+                try {
+                    const resp = await fetch('/api/vt/analysis/' + analysisId);
+                    const data = await resp.json();
+
+                    if (resp.status === 202) {
+                        // Still processing
+                        setTimeout(poll, 5000);
+                        return;
+                    }
+
+                    if (!resp.ok) {
+                        vtShowStatus('Error fetching results: ' + (data.error || 'Unknown error'), 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = '🚀 Submit to VirusTotal';
+                        return;
+                    }
+
+                    vtShowStatus('Analysis complete!', 'success');
+                    btn.disabled = false;
+                    btn.innerHTML = '🚀 Submit to VirusTotal';
+                    displayVTResults(data, sha256, 'SHA256');
+
+                } catch (err) {
+                    setTimeout(poll, 5000);
+                }
+            };
+
+            setTimeout(poll, 10000);
+        }
+
+        // --- VirusTotal ---
+        function vtShowStatus(msg, type) {
+            const el = document.getElementById('vt-status-msg');
+            el.textContent = msg;
+            el.className = 'status-msg show ' + type;
+        }
+
+        function vtHideStatus() {
+            document.getElementById('vt-status-msg').className = 'status-msg';
+        }
+
+        function detectIOCType(value) {
+            if (/^[a-fA-F0-9]{64}$/.test(value)) return 'SHA256';
+            if (/^[a-fA-F0-9]{40}$/.test(value)) return 'SHA1';
+            if (/^[a-fA-F0-9]{32}$/.test(value)) return 'MD5';
+            if (/^https?:\/\//i.test(value)) return 'url';
+            if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(value)) return 'ipv4';
+            if (/^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/.test(value)) return 'domain';
+            return 'SHA256'; // default to hash
+        }
+
+        async function vtLookup() {
+            const input = document.getElementById('vt-ioc-input');
+            const typeSelect = document.getElementById('vt-type-select');
+            const btn = document.getElementById('vt-lookup-btn');
+            const iocValue = input.value.trim();
+
+            if (!iocValue) {
+                vtShowStatus('Please enter an IOC to look up.', 'error');
+                return;
+            }
+
+            let iocType = typeSelect.value;
+            if (iocType === 'auto') {
+                iocType = detectIOCType(iocValue);
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Looking up...';
+            vtShowStatus('Querying VirusTotal for ' + iocType + '...', 'info');
+            document.getElementById('vt-results-container').innerHTML = '';
+
+            try {
+                const resp = await fetch('/api/vt/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ioc: iocValue, type: iocType })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    vtShowStatus('Error: ' + (data.error || 'Failed to lookup IOC'), 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '🔍 Lookup';
+                    return;
+                }
+
+                vtShowStatus('Lookup complete!', 'success');
+                btn.disabled = false;
+                btn.innerHTML = '🔍 Lookup';
+                displayVTResults(data, iocValue, iocType);
+
+            } catch (err) {
+                vtShowStatus('Network error: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '🔍 Lookup';
+            }
+        }
+
+        function displayVTResults(data, iocValue, iocType) {
+            const container = document.getElementById('vt-results-container');
+
+            if (!data.found) {
+                container.innerHTML = `
+                    <div class="result-card">
+                        <h3>Not Found</h3>
+                        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.75rem;">
+                            This IOC was not found in VirusTotal's database.
+                        </p>
+                        <a href="${escapeHtml(data.vt_link)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); font-size: 0.82rem; text-decoration: underline;">
+                            Search on VirusTotal ↗
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            const total = data.total || 0;
+            const malicious = data.malicious || 0;
+            const suspicious = data.suspicious || 0;
+            const harmless = data.harmless || 0;
+            const undetected = data.undetected || 0;
+
+            // Determine verdict
+            let verdict = 'clean';
+            let verdictLabel = 'Clean';
+            if (malicious > 5) {
+                verdict = 'malicious';
+                verdictLabel = 'Malicious';
+            } else if (malicious > 0 || suspicious > 2) {
+                verdict = 'unknown';
+                verdictLabel = 'Suspicious';
+            }
+
+            let html = '';
+
+            // Verdict
+            html += `
+                <div class="result-card">
+                    <h3>VirusTotal Verdict</h3>
+                    <span class="verdict-badge ${verdict}">${verdictLabel}</span>
+                    <span style="margin-left:1rem; font-size:0.82rem; color:var(--text-muted);">
+                        ${malicious}/${total} engines flagged as malicious
+                    </span>
+                </div>
+            `;
+
+            // Detection stats
+            html += `
+                <div class="result-card">
+                    <h3>Detection Statistics</h3>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <label>IOC Value</label>
+                            <span>${escapeHtml(iocValue)}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Type</label>
+                            <span>${escapeHtml(iocType)}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Malicious</label>
+                            <span style="color: ${malicious > 0 ? 'var(--danger)' : 'var(--text-primary)'}">${malicious}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Suspicious</label>
+                            <span style="color: ${suspicious > 0 ? 'var(--warning)' : 'var(--text-primary)'}">${suspicious}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Harmless</label>
+                            <span style="color: var(--success)">${harmless}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Undetected</label>
+                            <span>${undetected}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Reputation</label>
+                            <span>${data.reputation !== undefined ? data.reputation : 'N/A'}</span>
+                        </div>
+            `;
+
+            // Type-specific fields
+            if (data.name) {
+                html += `<div class="result-item"><label>Name</label><span>${escapeHtml(data.name)}</span></div>`;
+            }
+            if (data.type_description) {
+                html += `<div class="result-item"><label>File Type</label><span>${escapeHtml(data.type_description)}</span></div>`;
+            }
+            if (data.country) {
+                html += `<div class="result-item"><label>Country</label><span>${escapeHtml(data.country)}</span></div>`;
+            }
+            if (data.as_owner) {
+                html += `<div class="result-item"><label>AS Owner</label><span>${escapeHtml(data.as_owner)}</span></div>`;
+            }
+            if (data.registrar) {
+                html += `<div class="result-item"><label>Registrar</label><span>${escapeHtml(data.registrar)}</span></div>`;
+            }
+
+            html += `</div></div>`;
+
+            // Detection bar visual
+            if (total > 0) {
+                const malPct = (malicious / total * 100).toFixed(1);
+                const susPct = (suspicious / total * 100).toFixed(1);
+                const cleanPct = (harmless / total * 100).toFixed(1);
+                html += `
+                    <div class="result-card">
+                        <h3>Detection Ratio</h3>
+                        <div style="height: 24px; border-radius: 12px; overflow: hidden; display: flex; background: var(--bg-secondary); margin-bottom: 0.75rem;">
+                            <div style="width: ${malPct}%; background: var(--danger); transition: width 0.3s;"></div>
+                            <div style="width: ${susPct}%; background: var(--warning); transition: width 0.3s;"></div>
+                            <div style="width: ${cleanPct}%; background: var(--success); transition: width 0.3s;"></div>
+                        </div>
+                        <div style="display:flex; gap:1.5rem; font-size:0.75rem; color:var(--text-muted);">
+                            <span>🔴 Malicious: ${malicious}</span>
+                            <span>🟡 Suspicious: ${suspicious}</span>
+                            <span>🟢 Harmless: ${harmless}</span>
+                            <span>⚪ Undetected: ${undetected}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Link to VT
+            html += `
+                <div class="result-card">
+                    <h3>Full Report</h3>
+                    <a href="${escapeHtml(data.vt_link)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); font-size: 0.85rem; text-decoration: underline;">
+                        View full report on VirusTotal ↗
+                    </a>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // --- AbuseIPDB ---
+        function abuseShowStatus(msg, type) {
+            const el = document.getElementById('abuse-status-msg');
+            el.textContent = msg;
+            el.className = 'status-msg show ' + type;
+        }
+
+        function abuseHideStatus() {
+            document.getElementById('abuse-status-msg').className = 'status-msg';
+        }
+
+        document.getElementById('abuse-ip-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') abuseCheck();
+        });
+
+        async function abuseCheck() {
+            const input = document.getElementById('abuse-ip-input');
+            const maxAge = document.getElementById('abuse-maxage-select').value;
+            const btn = document.getElementById('abuse-check-btn');
+            const ip = input.value.trim();
+
+            if (!ip) {
+                abuseShowStatus('Please enter an IP address to check.', 'error');
+                return;
+            }
+
+            // Basic IP validation
+            if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip) && !ip.includes(':')) {
+                abuseShowStatus('Please enter a valid IPv4 or IPv6 address.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Checking...';
+            abuseShowStatus('Querying AbuseIPDB...', 'info');
+            document.getElementById('abuse-results-container').innerHTML = '';
+
+            try {
+                const resp = await fetch('/api/abuseipdb/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: ip, max_age: parseInt(maxAge) })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    abuseShowStatus('Error: ' + (data.error || 'Failed to check IP'), 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '🔍 Check IP';
+                    return;
+                }
+
+                abuseShowStatus('Check complete!', 'success');
+                btn.disabled = false;
+                btn.innerHTML = '🔍 Check IP';
+                displayAbuseResults(data);
+
+            } catch (err) {
+                abuseShowStatus('Network error: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '🔍 Check IP';
+            }
+        }
+
+        function displayAbuseResults(response) {
+            const container = document.getElementById('abuse-results-container');
+            const data = response.data || {};
+
+            const score = data.abuseConfidenceScore || 0;
+            const totalReports = data.totalReports || 0;
+            const numDistinctUsers = data.numDistinctUsers || 0;
+            const lastReportedAt = data.lastReportedAt || 'Never';
+            const isTor = data.isTor || false;
+            const isWhitelisted = data.isWhitelisted || false;
+            const countryCode = data.countryCode || 'N/A';
+            const domain = data.domain || 'N/A';
+            const isp = data.isp || 'N/A';
+            const usageType = data.usageType || 'N/A';
+
+            // Determine verdict
+            let verdict = 'clean';
+            let verdictLabel = 'Clean';
+            if (score >= 75) {
+                verdict = 'malicious';
+                verdictLabel = 'Highly Malicious';
+            } else if (score >= 25) {
+                verdict = 'unknown';
+                verdictLabel = 'Suspicious';
+            }
+
+            let html = '';
+
+            // Confidence Score
+            html += `
+                <div class="result-card">
+                    <h3>Abuse Confidence Score</h3>
+                    <div style="display:flex; align-items:center; gap:1.5rem; margin-bottom:1rem;">
+                        <span class="verdict-badge ${verdict}">${verdictLabel}</span>
+                        <span style="font-size:2rem; font-weight:700; color: ${score >= 75 ? 'var(--danger)' : score >= 25 ? 'var(--warning)' : 'var(--success)'};">${score}%</span>
+                    </div>
+                    <div style="height: 20px; border-radius: 10px; overflow: hidden; background: var(--bg-secondary); margin-bottom: 0.5rem;">
+                        <div style="width: ${score}%; height: 100%; background: ${score >= 75 ? 'var(--danger)' : score >= 25 ? 'var(--warning)' : 'var(--success)'}; transition: width 0.3s; border-radius: 10px;"></div>
+                    </div>
+                    <p style="font-size:0.75rem; color:var(--text-muted);">Confidence of abuse based on reports from ${numDistinctUsers} distinct users</p>
+                </div>
+            `;
+
+            // IP Details
+            html += `
+                <div class="result-card">
+                    <h3>IP Details</h3>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <label>IP Address</label>
+                            <span>${escapeHtml(data.ipAddress || '')}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Country</label>
+                            <span>${escapeHtml(countryCode)}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>ISP</label>
+                            <span>${escapeHtml(isp)}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Domain</label>
+                            <span>${escapeHtml(domain)}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Usage Type</label>
+                            <span>${escapeHtml(usageType)}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Total Reports</label>
+                            <span style="color: ${totalReports > 0 ? 'var(--danger)' : 'var(--text-primary)'}">${totalReports}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Distinct Reporters</label>
+                            <span>${numDistinctUsers}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Last Reported</label>
+                            <span>${lastReportedAt !== 'Never' ? new Date(lastReportedAt).toLocaleString() : 'Never'}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Tor Node</label>
+                            <span>${isTor ? '⚠️ Yes' : 'No'}</span>
+                        </div>
+                        <div class="result-item">
+                            <label>Whitelisted</label>
+                            <span>${isWhitelisted ? '✅ Yes' : 'No'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Recent reports
+            if (data.reports && data.reports.length > 0) {
+                html += `
+                    <div class="result-card">
+                        <h3>Recent Reports (${data.reports.length})</h3>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                `;
+                data.reports.slice(0, 15).forEach(report => {
+                    const categories = (report.categories || []).map(c => getAbuseCategory(c)).join(', ');
+                    html += `
+                        <div style="padding: 0.75rem; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 0.5rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.3rem;">
+                                <span style="font-size:0.75rem; color:var(--text-muted);">${new Date(report.reportedAt).toLocaleString()}</span>
+                                <span style="font-size:0.7rem; color:var(--text-muted);">Reporter: ${escapeHtml(report.reporterCountryCode || 'N/A')}</span>
+                            </div>
+                            <div style="font-size:0.78rem; color:var(--text-secondary);">
+                                <strong>Categories:</strong> ${escapeHtml(categories || 'N/A')}
+                            </div>
+                            ${report.comment ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem; font-style:italic;">"${escapeHtml(report.comment.substring(0, 200))}"</div>` : ''}
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+            // Link to AbuseIPDB
+            html += `
+                <div class="result-card">
+                    <h3>Full Report</h3>
+                    <a href="https://www.abuseipdb.com/check/${escapeHtml(data.ipAddress || '')}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); font-size: 0.85rem; text-decoration: underline;">
+                        View full report on AbuseIPDB ↗
+                    </a>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function getAbuseCategory(id) {
+            const categories = {
+                1: 'DNS Compromise', 2: 'DNS Poisoning', 3: 'Fraud Orders',
+                4: 'DDoS Attack', 5: 'FTP Brute-Force', 6: 'Ping of Death',
+                7: 'Phishing', 8: 'Fraud VoIP', 9: 'Open Proxy',
+                10: 'Web Spam', 11: 'Email Spam', 12: 'Blog Spam',
+                13: 'VPN IP', 14: 'Port Scan', 15: 'Hacking',
+                16: 'SQL Injection', 17: 'Spoofing', 18: 'Brute-Force',
+                19: 'Bad Web Bot', 20: 'Exploited Host', 21: 'Web App Attack',
+                22: 'SSH', 23: 'IoT Targeted',
+            };
+            return categories[id] || `Category ${id}`;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "last_scan": "2026-06-29T06:02:07.264662+00:00",
+  "keywords": [
+    "sky",
+    "comcast",
+    "xfinity",
+    "sky.com",
+    "sky.uk",
+    "comcast.com",
+    "comcast.net",
+    "xfinity.com",
+    "xfinity.net",
+    "sky.it"
+  ],
+  "domains": [
+    {
+      "domain": "uk-neom.sky.com",
+      "keyword": "sky.uk",
+      "source": "CertSpotter",
+      "issuer": "",
+      "not_before": "2026-06-24T00:00:00Z",
+      "not_after": "2027-01-08T23:59:59Z",
+      "serial": "",
+      "cert_id": "15550108672"
+    },
+    {
+      "domain": "uk-neom.sky.uk",
+      "keyword": "sky.uk",
+      "source": "CertSpotter",
+      "issuer": "",
+      "not_before": "2026-06-24T00:00:00Z",
+      "not_after": "2027-01-08T23:59:59Z",
+      "serial": "",
+      "cert_id": "15550108672"
+    }
+  ],
+  "total": 2
+}

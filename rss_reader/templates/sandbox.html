@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sandbox - CTI Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/neo-theme.css">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --accent: #4f46e5;
+            --accent-dim: #6366f1;
+            --accent-glow: rgba(79, 70, 229, 0.08);
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #059669;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-active: rgba(79, 70, 229, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+        .sidebar {
+            position: fixed;
+            left: 0; top: 0; bottom: 0;
+            width: 200px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0;
+            z-index: 150;
+        }
+
+        .sidebar .sidebar-brand {
+            padding: 0 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .sidebar .sidebar-brand h2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .sidebar .sidebar-brand p {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-section-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 0.8rem 1rem 0.3rem;
+            margin-top: 0.5rem;
+        }
+        .nav-section-title:first-child {
+            margin-top: 0;
+        }
+
+        .sidebar .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0 0.75rem;
+        }
+
+        .sidebar .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .sidebar .nav-links a:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar .nav-links a.active {
+            background: rgba(79, 70, 229, 0.06);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .app-content {
+            margin-left: 200px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; padding: 1rem 0; }
+            .sidebar .sidebar-brand { display: none; }
+            .sidebar .nav-links a span:last-child { display: none; }
+            .sidebar .nav-links a { justify-content: center; padding: 0.6rem; }
+            .app-content { margin-left: 60px; }
+        }
+
+        .header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 0.85rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .brand h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .brand .tagline {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Sandbox tabs */
+        .sandbox-tabs {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.75rem 2rem;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sandbox-tab {
+            padding: 0.55rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            transition: all 0.15s;
+        }
+
+        .sandbox-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .sandbox-tab.active {
+            color: var(--accent);
+            font-weight: 600;
+            background: rgba(79, 70, 229, 0.06);
+        }
+
+        /* Main content */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .sandbox-panel {
+            display: none;
+        }
+
+        .sandbox-panel.active {
+            display: block;
+        }
+
+        /* Hybrid Analysis section */
+        .ha-search-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .ha-search-section h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .ha-search-section p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .ha-search-form {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .ha-search-form .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .ha-search-form label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.3rem;
+        }
+
+        .ha-search-form input,
+        .ha-search-form select {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.55rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .ha-search-form input:focus,
+        .ha-search-form select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .btn {
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #ffffff;
+            box-shadow: 0 1px 2px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #4338ca;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Results */
+        .ha-results {
+            display: none;
+        }
+
+        .ha-results.visible {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .results-header h3 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .results-count {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .ha-result-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+
+        .ha-result-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+            transform: translateY(-1px);
+        }
+
+        .ha-result-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 0.6rem;
+        }
+
+        .ha-result-name {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .ha-verdict {
+            padding: 0.2rem 0.6rem;
+            border-radius: 99px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .ha-verdict.malicious {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .ha-verdict.suspicious {
+            background: #fffbeb;
+            color: #d97706;
+            border: 1px solid #fde68a;
+        }
+
+        .ha-verdict.clean {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+
+        .ha-verdict.unknown {
+            background: var(--bg-secondary);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .ha-result-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .ha-result-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .ha-result-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            margin-top: 0.6rem;
+        }
+
+        .ha-tag {
+            padding: 0.15rem 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        /* Loading state */
+        .loading-indicator {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .loading-indicator.visible {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-bottom: 0.75rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(79, 70, 229, 0.06);
+            color: var(--accent);
+        }
+
+        .empty-state h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .empty-state p {
+            font-size: 0.82rem;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Detail panel */
+        .ha-detail-panel {
+            position: fixed;
+            top: 0;
+            right: -650px;
+            width: 650px;
+            height: 100vh;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
+            z-index: 200;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .ha-detail-panel.open {
+            right: 0;
+        }
+
+        .ha-detail-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ha-detail-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .close-btn:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .ha-detail-body {
+            padding: 1.5rem 2rem;
+        }
+
+        .detail-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-section h4 {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.6rem;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .detail-table td {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .detail-table td:first-child {
+            font-weight: 600;
+            width: 140px;
+            color: var(--text-muted);
+            background: var(--bg-secondary);
+        }
+
+        /* File Upload Section */
+        .ha-upload-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .ha-upload-section h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .ha-upload-section p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        .upload-zone .upload-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-zone .upload-text {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .upload-zone .upload-hint {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 0.3rem;
+        }
+
+        .upload-file-info {
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .upload-file-info.visible {
+            display: flex;
+        }
+
+        .upload-file-info .file-icon {
+            font-size: 1.3rem;
+        }
+
+        .upload-file-info .file-details {
+            flex: 1;
+        }
+
+        .upload-file-info .file-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .upload-file-info .file-size {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .upload-file-info .remove-file {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+
+        .upload-file-info .remove-file:hover {
+            color: var(--danger);
+        }
+
+        .upload-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .upload-controls .form-group {
+            min-width: 180px;
+        }
+
+        .upload-controls label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.3rem;
+        }
+
+        .upload-controls select {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.55rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .upload-controls select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        /* Submission status */
+        .submission-status {
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .submission-status.visible {
+            display: block;
+        }
+
+        .submission-status h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .submission-progress {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .submission-progress .progress-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        .submission-progress .progress-text {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .submission-complete {
+            display: none;
+        }
+
+        .submission-complete.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <h2>🛡️ CTI Dashboard</h2>
+                <p>Threat Intel</p>
+            </div>
+            <div class="nav-links">
+                <div class="nav-section-title">OVERVIEW</div>
+                <a href="/"><span>🛡️</span> <span>Horizon Scans</span></a>
+                <a href="/vulnerabilities"><span>⚠️</span> <span>Vulnerabilities</span></a>
+                <a href="/npm"><span>📦</span> <span>NPM</span></a>
+                <a href="/ransomware"><span>💀</span> <span>Ransomware</span></a>
+                <a href="/adversaries"><span>👥</span> <span>Adversaries</span></a>
+                <a href="/knowledgegraph"><span>🕸️</span> <span>Knowledge Graph</span></a>
+                <div class="nav-section-title">ANALYSIS</div>
+                <a href="/osint"><span>🔎</span> <span>OSINT</span></a>
+                <a href="/sandbox" class="active"><span>🧪</span> <span>Sandbox</span></a>
+            </div>
+        </nav>
+
+        <div class="app-content">
+            <header class="header">
+                <div class="header-content">
+                    <div class="brand">
+                        <div class="brand-icon">🧪</div>
+                        <div>
+                            <h1>Sandbox Analysis</h1>
+                            <p class="tagline">Malware Detonation & File Analysis</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Sandbox sub-tabs -->
+            <div class="sandbox-tabs">
+                <button class="sandbox-tab active" onclick="switchTab('hybrid-analysis')">🔬 Hybrid Analysis</button>
+                <button class="sandbox-tab" onclick="switchTab('anyrun')">🔍 ANY.RUN</button>
+            </div>
+
+            <!-- Hybrid Analysis Panel -->
+            <div class="sandbox-panel active" id="panel-hybrid-analysis">
+                <div class="main">
+                    <!-- Search Section -->
+                    <div class="ha-search-section">
+                        <h3>🔬 Hybrid Analysis Lookup</h3>
+                        <p>Search for malware samples, file hashes, domains, or IPs in the Hybrid Analysis database.</p>
+                        <div class="ha-search-form">
+                            <div class="form-group">
+                                <label>Search Query</label>
+                                <input type="text" id="haSearchInput" placeholder="SHA256, MD5, filename, domain, IP..." autocomplete="off">
+                            </div>
+                            <div class="form-group" style="flex: 0 0 160px; min-width: 160px;">
+                                <label>Type</label>
+                                <select id="haSearchType">
+                                    <option value="hash">File Hash</option>
+                                    <option value="filename">Filename</option>
+                                    <option value="domain">Domain</option>
+                                    <option value="host">IP Address</option>
+                                    <option value="tag">Tag</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="searchHybridAnalysis()" id="haSearchBtn">
+                                Search
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Loading -->
+                    <div class="loading-indicator" id="haLoading">
+                        <div class="spinner"></div>
+                        <p>Searching Hybrid Analysis...</p>
+                    </div>
+
+                    <!-- Results -->
+                    <div class="ha-results" id="haResults">
+                        <div class="results-header">
+                            <h3>Results</h3>
+                            <span class="results-count" id="haResultsCount"></span>
+                        </div>
+                        <div id="haResultsList"></div>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div class="empty-state" id="haEmptyState">
+                        <div class="icon">🔬</div>
+                        <h3>Hybrid Analysis Sandbox</h3>
+                        <p>Search for file hashes, domains, or IPs to retrieve sandbox analysis reports and threat verdicts.</p>
+                    </div>
+
+                    <!-- File Upload Section -->
+                    <div class="ha-upload-section">
+                        <h3>📤 Submit File for Sandbox Analysis</h3>
+                        <p>Upload a suspicious file to Hybrid Analysis for full sandbox detonation and behavioral analysis.</p>
+
+                        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                            <div class="upload-icon">📁</div>
+                            <div class="upload-text">Drop file here or click to browse</div>
+                            <div class="upload-hint">Max file size: 100MB • Supported: EXE, DLL, PDF, DOC, ZIP, APK, JAR, JS, and more</div>
+                        </div>
+                        <input type="file" id="fileInput" style="display:none">
+
+                        <div class="upload-file-info" id="uploadFileInfo">
+                            <span class="file-icon">📄</span>
+                            <div class="file-details">
+                                <div class="file-name" id="uploadFileName"></div>
+                                <div class="file-size" id="uploadFileSize"></div>
+                            </div>
+                            <button class="remove-file" onclick="clearFileSelection()" title="Remove file">✕</button>
+                        </div>
+
+                        <div class="upload-controls">
+                            <div class="form-group">
+                                <label>Analysis Environment</label>
+                                <select id="envSelect">
+                                    <option value="160">Windows 10 64-bit</option>
+                                    <option value="110">Windows 7 64-bit</option>
+                                    <option value="100">Windows 7 32-bit</option>
+                                    <option value="200">Android (Static)</option>
+                                    <option value="300">Linux 64-bit (Ubuntu 16.04)</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" id="submitFileBtn" onclick="submitFileForAnalysis()" disabled>
+                                🚀 Submit for Analysis
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Submission Status -->
+                    <div class="submission-status" id="submissionStatus">
+                        <h3>📊 Analysis Status</h3>
+                        <div class="submission-progress" id="submissionProgress">
+                            <div class="progress-spinner"></div>
+                            <span class="progress-text" id="progressText">Uploading file...</span>
+                        </div>
+                        <div class="submission-complete" id="submissionComplete">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ANY.RUN Panel -->
+    <div class="sandbox-panel" id="panel-anyrun">
+        <div class="main">
+            <!-- Empty state / intro -->
+            <div class="empty-state" id="anyrunEmptyState">
+                <div class="icon">🔍</div>
+                <h3>ANY.RUN Interactive Sandbox</h3>
+                <p>Upload a suspicious file to ANY.RUN for interactive behavioral analysis and threat detection.</p>
+            </div>
+
+            <!-- File Upload Section -->
+            <div class="ha-upload-section">
+                <h3>📤 Submit File to ANY.RUN</h3>
+                <p>Upload a file for cloud-based interactive sandbox detonation powered by ANY.RUN.</p>
+
+                <div class="upload-zone" id="anyrunUploadZone" onclick="document.getElementById('anyrunFileInput').click()">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Drop file here or click to browse</div>
+                    <div class="upload-hint">Max file size: 100MB • EXE, DLL, PDF, DOC, ZIP, and more</div>
+                </div>
+                <input type="file" id="anyrunFileInput" style="display:none">
+
+                <div class="upload-file-info" id="anyrunFileInfo">
+                    <span class="file-icon">📄</span>
+                    <div class="file-details">
+                        <div class="file-name" id="anyrunFileName"></div>
+                        <div class="file-size" id="anyrunFileSize"></div>
+                    </div>
+                    <button class="remove-file" onclick="clearAnyrunFile()" title="Remove file">✕</button>
+                </div>
+
+                <div class="upload-controls">
+                    <div class="form-group">
+                        <label>OS</label>
+                        <select id="anyrunOS">
+                            <option value="windows">Windows</option>
+                            <option value="linux">Linux</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Architecture</label>
+                        <select id="anyrunBitness">
+                            <option value="64">64-bit</option>
+                            <option value="32">32-bit</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="anyrunSubmitBtn" onclick="submitToAnyrun()" disabled>
+                        🚀 Submit to ANY.RUN
+                    </button>
+                </div>
+            </div>
+
+            <!-- Submission Status -->
+            <div class="submission-status" id="anyrunStatus">
+                <h3>📊 Analysis Status</h3>
+                <div class="submission-progress" id="anyrunProgress">
+                    <div class="progress-spinner"></div>
+                    <span class="progress-text" id="anyrunProgressText">Uploading file...</span>
+                </div>
+                <div class="submission-complete" id="anyrunComplete">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Panel -->
+    <div class="ha-detail-panel" id="haDetailPanel">
+        <div class="ha-detail-header">
+            <h3 id="haDetailTitle">Sample Details</h3>
+            <button class="close-btn" onclick="closeDetailPanel()">✕</button>
+        </div>
+        <div class="ha-detail-body" id="haDetailBody">
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.sandbox-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.sandbox-panel').forEach(p => p.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('panel-' + tabId).classList.add('active');
+        }
+
+        async function searchHybridAnalysis() {
+            const query = document.getElementById('haSearchInput').value.trim();
+            const type = document.getElementById('haSearchType').value;
+            if (!query) return;
+
+            document.getElementById('haLoading').classList.add('visible');
+            document.getElementById('haResults').classList.remove('visible');
+            document.getElementById('haEmptyState').style.display = 'none';
+            document.getElementById('haSearchBtn').disabled = true;
+
+            try {
+                const resp = await fetch('/api/sandbox/hybrid-analysis/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, type })
+                });
+                const data = await resp.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                renderResults(data.results || [], data.web_search_url);
+            } catch (e) {
+                alert('Failed to search: ' + e.message);
+            } finally {
+                document.getElementById('haLoading').classList.remove('visible');
+                document.getElementById('haSearchBtn').disabled = false;
+            }
+        }
+
+        function renderResults(results, webSearchUrl) {
+            const container = document.getElementById('haResultsList');
+            const countEl = document.getElementById('haResultsCount');
+
+            if (results.length === 0) {
+                document.getElementById('haResults').classList.remove('visible');
+                document.getElementById('haEmptyState').style.display = 'block';
+                document.getElementById('haEmptyState').querySelector('h3').textContent = 'No results found via API';
+                document.getElementById('haEmptyState').querySelector('p').innerHTML = webSearchUrl
+                    ? 'The API returned no results. <a href="' + escapeHtml(webSearchUrl) + '" target="_blank" style="color:var(--accent);font-weight:600;">Search directly on Hybrid Analysis website ↗</a>'
+                    : 'Try a different search query or type.';
+                return;
+            }
+
+            countEl.textContent = results.length + ' result' + (results.length !== 1 ? 's' : '');
+            container.innerHTML = results.map((r, i) => {
+                const verdict = r.verdict || 'unknown';
+                const verdictClass = verdict.toLowerCase().includes('malicious') ? 'malicious' :
+                    verdict.toLowerCase().includes('suspicious') ? 'suspicious' :
+                    verdict.toLowerCase().includes('clean') || verdict.toLowerCase().includes('no specific threat') ? 'clean' : 'unknown';
+
+                const tags = (r.tags || []).map(t => `<span class="ha-tag">${escapeHtml(t)}</span>`).join('');
+
+                return `
+                    <div class="ha-result-card" onclick="showDetail(${i})">
+                        <div class="ha-result-header">
+                            <div class="ha-result-name">${escapeHtml(r.name || r.sha256 || 'Unknown')}</div>
+                            <span class="ha-verdict ${verdictClass}">${escapeHtml(verdict)}</span>
+                        </div>
+                        <div class="ha-result-meta">
+                            ${r.sha256 ? `<span>🔑 ${r.sha256.substring(0, 16)}...</span>` : ''}
+                            ${r.type ? `<span>📄 ${escapeHtml(r.type)}</span>` : ''}
+                            ${r.environment ? `<span>💻 ${escapeHtml(r.environment)}</span>` : ''}
+                            ${r.submit_date ? `<span>📅 ${escapeHtml(r.submit_date)}</span>` : ''}
+                        </div>
+                        ${tags ? `<div class="ha-result-tags">${tags}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('haResults').classList.add('visible');
+            window._haResults = results;
+        }
+
+        function showDetail(index) {
+            const r = window._haResults[index];
+            if (!r) return;
+
+            const panel = document.getElementById('haDetailPanel');
+            const body = document.getElementById('haDetailBody');
+            document.getElementById('haDetailTitle').textContent = r.name || r.sha256 || 'Sample Details';
+
+            body.innerHTML = `
+                <div class="detail-section">
+                    <h4>Overview</h4>
+                    <table class="detail-table">
+                        <tr><td>Verdict</td><td>${escapeHtml(r.verdict || 'N/A')}</td></tr>
+                        <tr><td>Threat Score</td><td>${r.threat_score != null ? r.threat_score + '/100' : 'N/A'}</td></tr>
+                        <tr><td>File Type</td><td>${escapeHtml(r.type || 'N/A')}</td></tr>
+                        <tr><td>File Size</td><td>${r.size ? formatBytes(r.size) : 'N/A'}</td></tr>
+                        <tr><td>Environment</td><td>${escapeHtml(r.environment || 'N/A')}</td></tr>
+                        <tr><td>Submitted</td><td>${escapeHtml(r.submit_date || 'N/A')}</td></tr>
+                    </table>
+                </div>
+                <div class="detail-section">
+                    <h4>Hashes</h4>
+                    <table class="detail-table">
+                        ${r.sha256 ? `<tr><td>SHA256</td><td style="word-break:break-all; font-family: monospace; font-size: 0.72rem;">${escapeHtml(r.sha256)}</td></tr>` : ''}
+                        ${r.sha1 ? `<tr><td>SHA1</td><td style="word-break:break-all; font-family: monospace; font-size: 0.72rem;">${escapeHtml(r.sha1)}</td></tr>` : ''}
+                        ${r.md5 ? `<tr><td>MD5</td><td style="word-break:break-all; font-family: monospace; font-size: 0.72rem;">${escapeHtml(r.md5)}</td></tr>` : ''}
+                    </table>
+                </div>
+                ${r.tags && r.tags.length ? `
+                <div class="detail-section">
+                    <h4>Tags</h4>
+                    <div class="ha-result-tags">${r.tags.map(t => `<span class="ha-tag">${escapeHtml(t)}</span>`).join('')}</div>
+                </div>` : ''}
+                ${r.report_url ? `
+                <div class="detail-section">
+                    <a href="${escapeHtml(r.report_url)}" target="_blank" class="btn btn-secondary" style="text-decoration:none;">
+                        Open Full Report ↗
+                    </a>
+                </div>` : ''}
+            `;
+
+            panel.classList.add('open');
+        }
+
+        function closeDetailPanel() {
+            document.getElementById('haDetailPanel').classList.remove('open');
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // Enter key to search
+        document.getElementById('haSearchInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') searchHybridAnalysis();
+        });
+
+        // --- File Upload Functionality ---
+        let selectedFile = null;
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        // Drag and drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                handleFileSelect(fileInput.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (file.size > 100 * 1024 * 1024) {
+                alert('File too large. Maximum size is 100MB.');
+                return;
+            }
+            selectedFile = file;
+            document.getElementById('uploadFileName').textContent = file.name;
+            document.getElementById('uploadFileSize').textContent = formatBytes(file.size);
+            document.getElementById('uploadFileInfo').classList.add('visible');
+            document.getElementById('submitFileBtn').disabled = false;
+            uploadZone.style.display = 'none';
+        }
+
+        function clearFileSelection() {
+            selectedFile = null;
+            fileInput.value = '';
+            document.getElementById('uploadFileInfo').classList.remove('visible');
+            document.getElementById('submitFileBtn').disabled = true;
+            uploadZone.style.display = 'block';
+        }
+
+        async function submitFileForAnalysis() {
+            if (!selectedFile) return;
+
+            const envId = document.getElementById('envSelect').value;
+            const submitBtn = document.getElementById('submitFileBtn');
+            submitBtn.disabled = true;
+
+            document.getElementById('submissionStatus').classList.add('visible');
+            document.getElementById('submissionProgress').style.display = 'flex';
+            document.getElementById('submissionComplete').classList.remove('visible');
+            document.getElementById('progressText').textContent = 'Uploading file to Hybrid Analysis...';
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('environment_id', envId);
+
+            try {
+                const resp = await fetch('/api/sandbox/hybrid-analysis/submit-file', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await resp.json();
+
+                if (data.error) {
+                    document.getElementById('progressText').textContent = 'Error: ' + data.error;
+                    document.getElementById('submissionProgress').querySelector('.progress-spinner').style.display = 'none';
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                document.getElementById('progressText').textContent = 'File submitted! Waiting for analysis to complete...';
+
+                // Start polling for results
+                pollForResults(data.sha256, envId);
+
+            } catch (e) {
+                document.getElementById('progressText').textContent = 'Upload failed: ' + e.message;
+                document.getElementById('submissionProgress').querySelector('.progress-spinner').style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+
+        async function pollForResults(sha256, envId) {
+            let attempts = 0;
+            const maxAttempts = 60; // ~5 minutes with 5s intervals
+
+            const poll = async () => {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    document.getElementById('progressText').textContent = 'Analysis taking longer than expected. Check Hybrid Analysis directly.';
+                    document.getElementById('submissionProgress').querySelector('.progress-spinner').style.display = 'none';
+                    showReportLink(sha256);
+                    return;
+                }
+
+                try {
+                    const resp = await fetch(`/api/sandbox/hybrid-analysis/report/${sha256}?environment_id=${envId}`);
+                    const data = await resp.json();
+
+                    if (data.status === 'complete') {
+                        document.getElementById('submissionProgress').style.display = 'none';
+                        renderSubmissionReport(data);
+                        return;
+                    }
+
+                    document.getElementById('progressText').textContent = data.message || `Analysis in progress... (${attempts * 5}s)`;
+                    setTimeout(poll, 5000);
+                } catch (e) {
+                    document.getElementById('progressText').textContent = 'Error checking status. Retrying...';
+                    setTimeout(poll, 5000);
+                }
+            };
+
+            setTimeout(poll, 10000); // Wait 10s before first poll
+        }
+
+        function showReportLink(sha256) {
+            const complete = document.getElementById('submissionComplete');
+            complete.innerHTML = `
+                <div style="text-align:center; padding:1rem;">
+                    <a href="https://www.hybrid-analysis.com/sample/${escapeHtml(sha256)}" target="_blank" class="btn btn-primary" style="text-decoration:none;">
+                        View on Hybrid Analysis ↗
+                    </a>
+                </div>
+            `;
+            complete.classList.add('visible');
+        }
+
+        function renderSubmissionReport(data) {
+            const complete = document.getElementById('submissionComplete');
+            const verdict = data.verdict || 'unknown';
+            const verdictClass = verdict.toLowerCase().includes('malicious') ? 'malicious' :
+                verdict.toLowerCase().includes('suspicious') ? 'suspicious' :
+                verdict.toLowerCase().includes('clean') || verdict.toLowerCase().includes('no specific threat') ? 'clean' : 'unknown';
+
+            const mitreHtml = (data.mitre_attcks || []).length > 0 ?
+                `<div class="detail-section">
+                    <h4>MITRE ATT&CK</h4>
+                    <div class="ha-result-tags">
+                        ${data.mitre_attcks.map(m => `<span class="ha-tag">${escapeHtml(typeof m === 'string' ? m : (m.technique || m.attck_id || ''))}</span>`).join('')}
+                    </div>
+                </div>` : '';
+
+            const tagsHtml = (data.tags || []).length > 0 ?
+                `<div class="detail-section">
+                    <h4>Tags</h4>
+                    <div class="ha-result-tags">
+                        ${data.tags.map(t => `<span class="ha-tag">${escapeHtml(t)}</span>`).join('')}
+                    </div>
+                </div>` : '';
+
+            complete.innerHTML = `
+                <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="ha-verdict ${verdictClass}" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">${escapeHtml(verdict)}</span>
+                    ${data.threat_score != null ? `<span style="font-size: 0.85rem; font-weight: 600;">Threat Score: ${data.threat_score}/100</span>` : ''}
+                    ${data.vx_family ? `<span style="font-size: 0.8rem; color: var(--danger); font-weight: 500;">Family: ${escapeHtml(data.vx_family)}</span>` : ''}
+                </div>
+                <div class="detail-section">
+                    <h4>Analysis Summary</h4>
+                    <table class="detail-table">
+                        <tr><td>File Name</td><td>${escapeHtml(data.name || 'N/A')}</td></tr>
+                        <tr><td>File Type</td><td>${escapeHtml(data.type || 'N/A')}</td></tr>
+                        <tr><td>Size</td><td>${data.size ? formatBytes(data.size) : 'N/A'}</td></tr>
+                        <tr><td>Environment</td><td>${escapeHtml(data.environment || 'N/A')}</td></tr>
+                        <tr><td>Analysis Time</td><td>${escapeHtml(data.analysis_start_time || 'N/A')}</td></tr>
+                        ${data.total_processes != null ? `<tr><td>Processes</td><td>${data.total_processes}</td></tr>` : ''}
+                        ${data.total_network_connections != null ? `<tr><td>Network Conn.</td><td>${data.total_network_connections}</td></tr>` : ''}
+                        ${data.total_signatures != null ? `<tr><td>Signatures</td><td>${data.total_signatures}</td></tr>` : ''}
+                    </table>
+                </div>
+                <div class="detail-section">
+                    <h4>Hashes</h4>
+                    <table class="detail-table">
+                        ${data.sha256 ? `<tr><td>SHA256</td><td style="word-break:break-all; font-family: monospace; font-size: 0.72rem;">${escapeHtml(data.sha256)}</td></tr>` : ''}
+                        ${data.sha1 ? `<tr><td>SHA1</td><td style="word-break:break-all; font-family: monospace; font-size: 0.72rem;">${escapeHtml(data.sha1)}</td></tr>` : ''}
+                        ${data.md5 ? `<tr><td>MD5</td><td style="word-break:break-all; font-family: monospace; font-size: 0.72rem;">${escapeHtml(data.md5)}</td></tr>` : ''}
+                    </table>
+                </div>
+                ${mitreHtml}
+                ${tagsHtml}
+                <div class="detail-section">
+                    <a href="${escapeHtml(data.report_url || '')}" target="_blank" class="btn btn-primary" style="text-decoration:none;">
+                        Open Full Report on Hybrid Analysis ↗
+                    </a>
+                </div>
+            `;
+            complete.classList.add('visible');
+            document.getElementById('submitFileBtn').disabled = false;
+        }
+
+        // ── ANY.RUN ──────────────────────────────────────────────────────────
+        let anyrunSelectedFile = null;
+
+        (function initAnyrun() {
+            const zone = document.getElementById('anyrunUploadZone');
+            const input = document.getElementById('anyrunFileInput');
+            if (!zone || !input) return;
+
+            zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+            zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) handleAnyrunFile(e.dataTransfer.files[0]);
+            });
+            input.addEventListener('change', () => {
+                if (input.files.length) handleAnyrunFile(input.files[0]);
+            });
+        })();
+
+        function handleAnyrunFile(file) {
+            if (file.size > 100 * 1024 * 1024) { alert('File too large. Maximum size is 100MB.'); return; }
+            anyrunSelectedFile = file;
+            document.getElementById('anyrunFileName').textContent = file.name;
+            document.getElementById('anyrunFileSize').textContent = formatBytes(file.size);
+            document.getElementById('anyrunFileInfo').classList.add('visible');
+            document.getElementById('anyrunSubmitBtn').disabled = false;
+            document.getElementById('anyrunUploadZone').style.display = 'none';
+        }
+
+        function clearAnyrunFile() {
+            anyrunSelectedFile = null;
+            document.getElementById('anyrunFileInput').value = '';
+            document.getElementById('anyrunFileInfo').classList.remove('visible');
+            document.getElementById('anyrunSubmitBtn').disabled = true;
+            document.getElementById('anyrunUploadZone').style.display = 'block';
+        }
+
+        async function submitToAnyrun() {
+            if (!anyrunSelectedFile) return;
+
+            const envOS = document.getElementById('anyrunOS').value;
+            const envBitness = document.getElementById('anyrunBitness').value;
+            const submitBtn = document.getElementById('anyrunSubmitBtn');
+            submitBtn.disabled = true;
+
+            document.getElementById('anyrunStatus').classList.add('visible');
+            document.getElementById('anyrunProgress').style.display = 'flex';
+            document.getElementById('anyrunComplete').classList.remove('visible');
+            document.getElementById('anyrunProgressText').textContent = 'Uploading file to ANY.RUN...';
+
+            const formData = new FormData();
+            formData.append('file', anyrunSelectedFile);
+            formData.append('env_os', envOS);
+            formData.append('env_bitness', envBitness);
+
+            try {
+                const resp = await fetch('/api/sandbox/anyrun/submit-file', { method: 'POST', body: formData });
+                const data = await resp.json();
+
+                if (data.error) {
+                    document.getElementById('anyrunProgressText').textContent = 'Error: ' + data.error;
+                    document.getElementById('anyrunProgress').querySelector('.progress-spinner').style.display = 'none';
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                document.getElementById('anyrunProgressText').textContent = 'File submitted! Waiting for analysis to complete...';
+                pollAnyrun(data.task_id, data.report_url);
+
+            } catch (e) {
+                document.getElementById('anyrunProgressText').textContent = 'Upload failed: ' + e.message;
+                document.getElementById('anyrunProgress').querySelector('.progress-spinner').style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+
+        async function pollAnyrun(taskId, reportUrl) {
+            let attempts = 0;
+            const maxAttempts = 72; // ~6 minutes with 5s intervals
+
+            const poll = async () => {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    document.getElementById('anyrunProgressText').textContent = 'Analysis taking longer than expected. Check ANY.RUN directly.';
+                    document.getElementById('anyrunProgress').querySelector('.progress-spinner').style.display = 'none';
+                    document.getElementById('anyrunComplete').innerHTML = `
+                        <div style="text-align:center; padding:1rem;">
+                            <a href="${escapeHtml(reportUrl)}" target="_blank" class="btn btn-primary" style="text-decoration:none;">View on ANY.RUN ↗</a>
+                        </div>`;
+                    document.getElementById('anyrunComplete').classList.add('visible');
+                    return;
+                }
+
+                try {
+                    const resp = await fetch(`/api/sandbox/anyrun/report/${encodeURIComponent(taskId)}`);
+                    const data = await resp.json();
+
+                    if (data.status === 'complete') {
+                        document.getElementById('anyrunProgress').style.display = 'none';
+                        renderAnyrunReport(data);
+                        return;
+                    }
+
+                    document.getElementById('anyrunProgressText').textContent = data.message || `Analysis in progress... (${attempts * 5}s)`;
+                    setTimeout(poll, 5000);
+                } catch (e) {
+                    document.getElementById('anyrunProgressText').textContent = 'Error checking status. Retrying...';
+                    setTimeout(poll, 5000);
+                }
+            };
+
+            setTimeout(poll, 15000); // ANY.RUN needs a bit longer initial wait
+        }
+
+        function renderAnyrunReport(data) {
+            const complete = document.getElementById('anyrunComplete');
+            const verdict = data.verdict || 'unknown';
+            const verdictClass = verdict.toLowerCase().includes('malicious') ? 'malicious' :
+                verdict.toLowerCase().includes('suspicious') ? 'suspicious' :
+                verdict.toLowerCase().includes('no threats') || verdict.toLowerCase().includes('clean') ? 'clean' : 'unknown';
+
+            const mitreHtml = (data.mitre_attcks || []).length > 0 ?
+                `<div class="detail-section">
+                    <h4>MITRE ATT&CK</h4>
+                    <div class="ha-result-tags">
+                        ${data.mitre_attcks.map(m => `<span class="ha-tag">${escapeHtml(m)}</span>`).join('')}
+                    </div>
+                </div>` : '';
+
+            complete.innerHTML = `
+                <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="ha-verdict ${verdictClass}" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">${escapeHtml(verdict)}</span>
+                    ${data.threat_score != null ? `<span style="font-size: 0.85rem; font-weight: 600;">Threat Score: ${data.threat_score}/100</span>` : ''}
+                </div>
+                <div class="detail-section">
+                    <h4>Analysis Summary</h4>
+                    <table class="detail-table">
+                        <tr><td>File Name</td><td>${escapeHtml(data.name || 'N/A')}</td></tr>
+                        <tr><td>File Type</td><td>${escapeHtml(data.type || 'N/A')}</td></tr>
+                        ${data.size != null ? `<tr><td>Size</td><td>${formatBytes(data.size)}</td></tr>` : ''}
+                        <tr><td>Environment</td><td>${escapeHtml(data.environment || 'N/A')}</td></tr>
+                        <tr><td>Analysis Time</td><td>${escapeHtml(data.analysis_start_time || 'N/A')}</td></tr>
+                        ${data.total_processes != null ? `<tr><td>Processes</td><td>${data.total_processes}</td></tr>` : ''}
+                        ${data.total_network_connections != null ? `<tr><td>Network Conn.</td><td>${data.total_network_connections}</td></tr>` : ''}
+                        ${data.total_signatures != null ? `<tr><td>Signatures</td><td>${data.total_signatures}</td></tr>` : ''}
+                    </table>
+                </div>
+                <div class="detail-section">
+                    <h4>Hashes</h4>
+                    <table class="detail-table">
+                        ${data.sha256 ? `<tr><td>SHA256</td><td style="word-break:break-all; font-family: monospace; font-size: 0.72rem;">${escapeHtml(data.sha256)}</td></tr>` : ''}
+                        ${data.sha1 ? `<tr><td>SHA1</td><td style="word-break:break-all; font-family: monospace; font-size: 0.72rem;">${escapeHtml(data.sha1)}</td></tr>` : ''}
+                        ${data.md5 ? `<tr><td>MD5</td><td style="word-break:break-all; font-family: monospace; font-size: 0.72rem;">${escapeHtml(data.md5)}</td></tr>` : ''}
+                    </table>
+                </div>
+                ${mitreHtml}
+                <div class="detail-section">
+                    <a href="${escapeHtml(data.report_url || '')}" target="_blank" class="btn btn-primary" style="text-decoration:none;">
+                        Open Full Report on ANY.RUN ↗
+                    </a>
+                </div>
+            `;
+            complete.classList.add('visible');
+            document.getElementById('anyrunSubmitBtn').disabled = false;
+        }
+    </script>
+</body>
+</html>

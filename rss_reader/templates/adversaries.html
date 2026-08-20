@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adversaries - CTI Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/neo-theme.css">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --accent: #4f46e5;
+            --accent-dim: #6366f1;
+            --accent-glow: rgba(79, 70, 229, 0.08);
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #059669;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-active: rgba(79, 70, 229, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .app { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            position: fixed; left: 0; top: 0; bottom: 0; width: 200px;
+            background: var(--bg-primary); border-right: none;
+            display: flex; flex-direction: column; padding: 1.5rem 0; z-index: 150;
+            box-shadow: none; border-right: 1px solid var(--border);
+        }
+        .sidebar .sidebar-brand { padding: 0 1.25rem 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+        .sidebar .sidebar-brand h2 { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem; }
+        .sidebar .sidebar-brand p { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+                .nav-section-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 0.8rem 1rem 0.3rem;
+            margin-top: 0.5rem;
+        }
+        .nav-section-title:first-child {
+            margin-top: 0;
+        }
+
+        .sidebar .nav-links { display: flex; flex-direction: column; gap: 0.4rem; padding: 0 0.75rem; }
+        .sidebar .nav-links a { display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500; color: var(--text-muted); text-decoration: none; transition: all 0.2s; }
+        .sidebar .nav-links a:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .sidebar .nav-links a.active { background: var(--bg-primary); color: var(--accent); font-weight: 600; border: none; background: rgba(79, 70, 229, 0.06); }
+
+        .app-content { margin-left: 200px; flex: 1; min-width: 0; }
+
+        .header { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; }
+        .header-content { max-width: 1600px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+        .brand { display: flex; align-items: center; gap: 0.75rem; }
+        .brand-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent), var(--accent-dim)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        .brand h1 { font-size: 1.25rem; font-weight: 700; }
+        .brand .tagline { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; }
+
+        .btn { padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-dim); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { opacity: 0.9; }
+        .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--bg-hover); }
+
+        /* Sub-tabs */
+        .sub-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); padding: 0 2rem; background: var(--bg-secondary); }
+        .sub-tab { padding: 0.85rem 1.5rem; font-size: 0.8rem; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+        .sub-tab:hover { color: var(--text-primary); background: var(--bg-hover); }
+        .sub-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+        /* Main content */
+        .main { max-width: 1600px; margin: 0 auto; padding: 1.5rem 2rem; }
+
+        .empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+        .empty-state .hint { font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.7; }
+
+        /* APT Group list */
+        .apt-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+        .apt-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; transition: all 0.2s; cursor: pointer; }
+        .apt-card:hover { border-color: var(--border-active); box-shadow: 0 4px 12px rgba(0,0,0,0.05); transform: translateY(-2px); }
+        .apt-card .card-name { font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; }
+        .apt-card .card-meta { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+        .apt-card .card-summary { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .apt-card .card-actions { margin-top: 0.75rem; display: flex; gap: 0.5rem; }
+        .apt-card .card-actions button { font-size: 0.68rem; padding: 0.3rem 0.6rem; }
+
+        /* Create form */
+        .create-panel { display: none; }
+        .create-panel.visible { display: block; }
+        .form-section { margin-bottom: 1.5rem; }
+        .form-section label { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-secondary); }
+        .form-section input, .form-section textarea { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; font-family: inherit; }
+        .form-section input:focus, .form-section textarea:focus { outline: none; border-color: var(--border-active); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .form-section textarea { min-height: 100px; resize: vertical; }
+        .url-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .url-row { display: flex; gap: 0.5rem; align-items: center; }
+        .url-row input { flex: 1; }
+        .url-row button { padding: 0.4rem 0.6rem; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-secondary); cursor: pointer; }
+
+        /* Report view */
+        .report-view { display: none; }
+        .report-view.visible { display: block; }
+        .report-header { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid var(--border); }
+        .report-header h2 { font-size: 1.5rem; margin-bottom: 0.3rem; }
+        .report-header .cutoff { font-size: 0.75rem; color: var(--text-muted); }
+
+        .report-section { margin-bottom: 2rem; }
+        .report-section h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.6rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border); color: var(--accent); }
+        .report-section p { font-size: 0.82rem; line-height: 1.7; color: var(--text-secondary); }
+        .report-section ul { padding-left: 1.5rem; font-size: 0.82rem; line-height: 1.8; color: var(--text-secondary); }
+        .report-section ul li { margin-bottom: 0.3rem; }
+
+        /* Info table */
+        .info-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 1rem; }
+        .info-table td { padding: 0.5rem 0.75rem; border: 1px solid var(--border); }
+        .info-table td:first-child { font-weight: 600; width: 150px; background: var(--bg-secondary); }
+
+        /* Diamond model */
+        .diamond-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .diamond-cell { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
+        .diamond-cell h4 { font-size: 0.78rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--accent); }
+        .diamond-cell p { font-size: 0.75rem; line-height: 1.5; color: var(--text-secondary); }
+
+        /* Loading */
+        .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-msg { padding: 0.75rem 1rem; background: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b; font-size: 0.78rem; margin-bottom: 1rem; display: none; }
+
+        /* Token field */
+        .token-field { margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border); }
+        .token-field label { font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.3rem; }
+        .token-field input { width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.75rem; }
+        .token-field .hint { font-size: 0.62rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+        /* File list */
+        .file-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .file-row { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.2rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+        .file-row:hover { border-color: var(--border-active); background: var(--bg-hover); transform: translateX(4px); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .file-icon { font-size: 1.5rem; width: 40px; height: 40px; background: var(--bg-secondary); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .file-info { flex: 1; min-width: 0; }
+        .file-name { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-meta { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem; }
+        .file-actions { flex-shrink: 0; }
+        .file-actions button { font-size: 0.72rem; padding: 0.35rem 0.6rem; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <h2>🛡️ CTI Dashboard</h2>
+                <p>Threat Intel</p>
+            </div>
+            <div class="nav-links">
+                <div class="nav-section-title">OVERVIEW</div>
+                <a href="/"><span>🛡️</span> <span>Horizon Scans</span></a>
+                <a href="/vulnerabilities"><span>⚠️</span> <span>Vulnerabilities</span></a>
+                <a href="/npm"><span>📦</span> <span>NPM</span></a>
+                <a href="/ransomware"><span>💀</span> <span>Ransomware</span></a>
+                <a href="/adversaries" class="active"><span>👥</span> <span>Adversaries</span></a>
+                <a href="/knowledgegraph"><span>🕸️</span> <span>Knowledge Graph</span></a>
+                <div class="nav-section-title">ANALYSIS</div>
+                <a href="/osint"><span>🔎</span> <span>OSINT</span></a>
+                <a href="/sandbox"><span>🧪</span> <span>Sandbox</span></a>
+            </div>
+        </nav>
+
+        <div class="app-content">
+        <header class="header">
+            <div class="header-content">
+                <div class="brand">
+                    <div class="brand-icon">👥</div>
+                    <div>
+                        <h1>Adversaries</h1>
+                        <p class="tagline">Threat Actor Intelligence</p>
+                    </div>
+                </div>
+                <div id="headerActions">
+                    <button class="btn btn-primary" onclick="showCreatePanel()">+ Create APT Report</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="sub-tabs">
+            <div class="sub-tab active" data-tab="apt" onclick="switchTab('apt', this)">🎯 APT Groups</div>
+            <div class="sub-tab" data-tab="infostealers" onclick="switchTab('infostealers', this)">🔓 Infostealers</div>
+            <div class="sub-tab" data-tab="nation_state" onclick="switchTab('nation_state', this)">🏛️ Nation State</div>
+            <div class="sub-tab" data-tab="ransomware" onclick="switchTab('ransomware', this)">💀 Ransomware Groups</div>
+            <div class="sub-tab" data-tab="ecrime" onclick="switchTab('ecrime', this)">💰 E-Crime</div>
+        </div>
+
+        <main class="main">
+            <!-- APT Groups List View -->
+            <div id="aptListView">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                    <h2 style="font-size:1.1rem;">🎯 APT Group Reports</h2>
+                    <label class="btn btn-primary" style="cursor:pointer;">
+                        📁 Add File
+                        <input type="file" id="aptFileInput" accept=".docx" style="display:none;" onchange="uploadAptFile(this)">
+                    </label>
+                </div>
+                <div id="aptFileList"></div>
+                <!-- APT Document Viewer -->
+                <div id="aptDocViewer" style="display:none;">
+                    <div style="margin-bottom:1rem; display:flex; gap:0.5rem; align-items:center;">
+                        <button class="btn btn-secondary" onclick="closeAptDocViewer()">← Back to Files</button>
+                        <span id="aptDocViewerTitle" style="font-size:0.85rem; font-weight:600;"></span>
+                    </div>
+                    <div id="aptDocViewerContent" style="background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:2rem 2.5rem; user-select:text; pointer-events:auto; min-height:300px; font-size:0.85rem; line-height:1.8; color:var(--text-secondary);"></div>
+                    <style>
+                        #aptDocViewerContent h1 { font-size:1.4rem; font-weight:700; color:var(--text-primary); margin:1.5rem 0 0.75rem; padding-bottom:0.5rem; border-bottom:2px solid var(--border); }
+                        #aptDocViewerContent h1.doc-title { font-size:1.6rem; text-align:center; border-bottom:none; margin-bottom:0.25rem; }
+                        #aptDocViewerContent h2 { font-size:1.15rem; font-weight:700; color:var(--text-primary); margin:1.25rem 0 0.5rem; }
+                        #aptDocViewerContent h2.doc-subtitle { font-size:1rem; text-align:center; color:var(--text-muted); font-weight:400; margin-top:0; }
+                        #aptDocViewerContent h3 { font-size:1rem; font-weight:600; color:var(--text-primary); margin:1rem 0 0.4rem; }
+                        #aptDocViewerContent h4 { font-size:0.9rem; font-weight:600; color:var(--text-secondary); margin:0.75rem 0 0.3rem; }
+                        #aptDocViewerContent p { margin:0.4rem 0; }
+                        #aptDocViewerContent ul { padding-left:1.5rem; margin:0.5rem 0; }
+                        #aptDocViewerContent ul li { margin:0.3rem 0; }
+                        #aptDocViewerContent table { width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.8rem; }
+                        #aptDocViewerContent table th, #aptDocViewerContent table td { padding:0.5rem 0.75rem; border:1px solid var(--border); text-align:left; }
+                        #aptDocViewerContent table th { background:var(--bg-secondary); font-weight:600; color:var(--text-primary); }
+                        #aptDocViewerContent table tr:nth-child(even) td { background:var(--bg-secondary); }
+                        #aptDocViewerContent strong { font-weight:700; color:var(--text-primary); }
+                    </style>
+                </div>
+                <div class="apt-list" id="aptGrid"></div>
+            </div>
+
+            <!-- Create Panel -->
+            <div class="create-panel" id="createPanel">
+                <h2 style="font-size:1.1rem; margin-bottom:1rem;">📝 Create APT Group Report</h2>
+
+                <div class="token-field">
+                    <label>🔑 OpenAI API Key (for AI generation)</label>
+                    <input type="password" id="openaiKey" placeholder="sk-xxxxxxxxxxxx">
+                    <p class="hint">Stored in browser localStorage. Used to call GPT-4o via OpenAI API.</p>
+                </div>
+
+                <div class="form-section">
+                    <label>🔗 Intelligence Source URLs</label>
+                    <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.5rem;">Add URLs to threat reports, blog posts, or advisories about this APT group.</p>
+                    <div class="url-list" id="urlList">
+                        <div class="url-row">
+                            <input type="url" placeholder="https://example.com/apt-report" class="url-input">
+                            <button onclick="removeUrlRow(this)">✕</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" style="margin-top:0.5rem; font-size:0.72rem;" onclick="addUrlRow()">+ Add URL</button>
+                </div>
+
+                <div class="error-msg" id="errorMsg"></div>
+
+                <div style="display:flex; gap:0.75rem;">
+                    <button class="btn btn-primary" id="generateBtn" onclick="generateReport()">
+                        🤖 Generate Report with AI
+                    </button>
+                    <button class="btn btn-secondary" onclick="hideCreatePanel()">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Report View -->
+            <div class="report-view" id="reportView">
+                <div style="margin-bottom:1rem; display:flex; gap:0.5rem;">
+                    <button class="btn btn-secondary" onclick="backToList()">← Back to List</button>
+                    <button class="btn btn-primary" id="saveReportBtn" onclick="saveReport()" style="display:none;">💾 Save Report</button>
+                </div>
+                <div id="reportContent"></div>
+            </div>
+
+            <!-- Other tabs placeholder -->
+            <div id="otherTabContent" style="display:none;">
+                <div class="empty-state">
+                    <div class="icon" id="otherTabIcon">🔓</div>
+                    <p id="otherTabLabel">Infostealers</p>
+                    <p class="hint">Coming soon — content under development</p>
+                </div>
+            </div>
+
+            <!-- Infostealers Tab Content -->
+            <div id="infostealerContent" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                    <h2 style="font-size:1.1rem;">🔓 Infostealer Reports</h2>
+                    <label class="btn btn-primary" style="cursor:pointer;">
+                        📁 Add File
+                        <input type="file" id="infostealerFileInput" accept=".docx" style="display:none;" onchange="uploadInfostealerFile(this)">
+                    </label>
+                </div>
+                <div id="infostealerFileList"></div>
+                <!-- Document Viewer -->
+                <div id="docViewer" style="display:none;">
+                    <div style="margin-bottom:1rem; display:flex; gap:0.5rem; align-items:center;">
+                        <button class="btn btn-secondary" onclick="closeDocViewer()">← Back to Files</button>
+                        <span id="docViewerTitle" style="font-size:0.85rem; font-weight:600;"></span>
+                    </div>
+                    <div id="docViewerContent" style="background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:2rem 2.5rem; user-select:text; pointer-events:auto; min-height:300px; font-size:0.85rem; line-height:1.8; color:var(--text-secondary);"></div>
+                    <style>
+                        #docViewerContent h1 { font-size:1.4rem; font-weight:700; color:var(--text-primary); margin:1.5rem 0 0.75rem; padding-bottom:0.5rem; border-bottom:2px solid var(--border); }
+                        #docViewerContent h1.doc-title { font-size:1.6rem; text-align:center; border-bottom:none; margin-bottom:0.25rem; }
+                        #docViewerContent h2 { font-size:1.15rem; font-weight:700; color:var(--text-primary); margin:1.25rem 0 0.5rem; }
+                        #docViewerContent h2.doc-subtitle { font-size:1rem; text-align:center; color:var(--text-muted); font-weight:400; margin-top:0; }
+                        #docViewerContent h3 { font-size:1rem; font-weight:600; color:var(--text-primary); margin:1rem 0 0.4rem; }
+                        #docViewerContent h4 { font-size:0.9rem; font-weight:600; color:var(--text-secondary); margin:0.75rem 0 0.3rem; }
+                        #docViewerContent p { margin:0.4rem 0; }
+                        #docViewerContent ul { padding-left:1.5rem; margin:0.5rem 0; }
+                        #docViewerContent ul li { margin:0.3rem 0; }
+                        #docViewerContent table { width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.8rem; }
+                        #docViewerContent table th, #docViewerContent table td { padding:0.5rem 0.75rem; border:1px solid var(--border); text-align:left; }
+                        #docViewerContent table th { background:var(--bg-secondary); font-weight:600; color:var(--text-primary); }
+                        #docViewerContent table tr:nth-child(even) td { background:var(--bg-secondary); }
+                        #docViewerContent strong { font-weight:700; color:var(--text-primary); }
+                    </style>
+                </div>
+            </div>
+        </main>
+        </div>
+    </div>
+
+    <script>
+        let currentReport = null;
+
+        // Load saved token
+        const savedToken = localStorage.getItem('openai_api_key');
+        if (savedToken) document.getElementById('openaiKey').value = savedToken;
+        document.getElementById('openaiKey').addEventListener('change', function() {
+            localStorage.setItem('openai_api_key', this.value.trim());
+        });
+
+        const tabInfo = {
+            infostealers: { icon: '🔓', label: 'Infostealers' },
+            nation_state: { icon: '🏛️', label: 'Nation State' },
+            ransomware: { icon: '💀', label: 'Ransomware Groups' },
+            ecrime: { icon: '💰', label: 'E-Crime' },
+        };
+
+        function switchTab(tab, el) {
+            document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+
+            document.getElementById('aptListView').style.display = 'none';
+            document.getElementById('createPanel').classList.remove('visible');
+            document.getElementById('reportView').classList.remove('visible');
+            document.getElementById('otherTabContent').style.display = 'none';
+            document.getElementById('infostealerContent').style.display = 'none';
+            document.getElementById('headerActions').style.display = 'none';
+
+            if (tab === 'apt') {
+                document.getElementById('aptListView').style.display = 'block';
+                document.getElementById('headerActions').style.display = 'block';
+                loadAptGroups();
+                loadAptFiles();
+            } else if (tab === 'infostealers') {
+                document.getElementById('infostealerContent').style.display = 'block';
+                loadInfostealerFiles();
+            } else {
+                document.getElementById('otherTabContent').style.display = 'block';
+                document.getElementById('otherTabIcon').textContent = tabInfo[tab].icon;
+                document.getElementById('otherTabLabel').textContent = tabInfo[tab].label;
+            }
+        }
+
+        function showCreatePanel() {
+            document.getElementById('aptListView').style.display = 'none';
+            document.getElementById('reportView').classList.remove('visible');
+            document.getElementById('createPanel').classList.add('visible');
+            hideError();
+        }
+
+        function hideCreatePanel() {
+            document.getElementById('createPanel').classList.remove('visible');
+            document.getElementById('aptListView').style.display = 'block';
+        }
+
+        function addUrlRow() {
+            const list = document.getElementById('urlList');
+            const row = document.createElement('div');
+            row.className = 'url-row';
+            row.innerHTML = '<input type="url" placeholder="https://example.com/apt-report" class="url-input"><button onclick="removeUrlRow(this)">✕</button>';
+            list.appendChild(row);
+        }
+
+        function removeUrlRow(btn) {
+            const list = document.getElementById('urlList');
+            if (list.children.length > 1) btn.parentElement.remove();
+        }
+
+        async function generateReport() {
+            const token = document.getElementById('openaiKey').value.trim();
+            if (!token) { showError('Please enter your OpenAI API key.'); return; }
+            localStorage.setItem('openai_api_key', token);
+
+            const urls = Array.from(document.querySelectorAll('.url-input'))
+                .map(i => i.value.trim())
+                .filter(u => u);
+
+            if (urls.length === 0) { showError('Please add at least one URL.'); return; }
+
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Generating...';
+            hideError();
+
+            try {
+                const res = await fetch('/api/apt-groups/generate-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls, token })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    btn.disabled = false;
+                    btn.innerHTML = '🤖 Generate Report with AI';
+                    return;
+                }
+
+                currentReport = data;
+                renderReport(data);
+                document.getElementById('createPanel').classList.remove('visible');
+                document.getElementById('reportView').classList.add('visible');
+                document.getElementById('saveReportBtn').style.display = 'inline-flex';
+
+            } catch (err) {
+                showError('Network error: ' + err.message);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '🤖 Generate Report with AI';
+        }
+
+        function renderReport(report) {
+            const html = `
+                <div class="report-header">
+                    <h2>${esc(report.name || 'APT Group Report')}</h2>
+                    <p class="cutoff">Intelligence Cut-off Date: ${esc(report.intelligence_cutoff_date || 'N/A')}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>About Threat Actor</h3>
+                    <table class="info-table">
+                        <tr><td>Name</td><td>${esc(report.name)}</td></tr>
+                        <tr><td>Aliases</td><td>${(report.aliases || []).map(a => esc(a)).join(', ')}</td></tr>
+                        <tr><td>Type</td><td>${esc(report.type)}</td></tr>
+                        <tr><td>Origin</td><td>${esc(report.origin)}</td></tr>
+                        <tr><td>Sponsor</td><td>${esc(report.sponsor)}</td></tr>
+                        <tr><td>Motivation</td><td>${esc(report.motivation)}</td></tr>
+                        <tr><td>Specialty</td><td>${esc(report.specialty)}</td></tr>
+                        <tr><td>First Seen</td><td>${esc(report.first_seen)}</td></tr>
+                        <tr><td>Last Seen</td><td>${esc(report.last_seen)}</td></tr>
+                        <tr><td>Target Sectors</td><td>${(report.target_sectors || []).map(s => esc(s)).join(', ')}</td></tr>
+                        <tr><td>Target Locations</td><td>${(report.target_locations || []).map(l => esc(l)).join(', ')}</td></tr>
+                    </table>
+                </div>
+
+                <div class="report-section">
+                    <h3>Executive Summary</h3>
+                    <p>${esc(report.executive_summary)}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>Key Points</h3>
+                    <ul>${(report.key_points || []).map(p => `<li>${esc(p)}</li>`).join('')}</ul>
+                </div>
+
+                <div class="report-section">
+                    <h3>Assessment</h3>
+                    <p>${esc(report.assessment)}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>Target Rationale</h3>
+                    <p>${esc(report.target_rationale)}</p>
+                </div>
+
+                <div class="report-section">
+                    <h3>Diamond Model</h3>
+                    <div class="diamond-grid">
+                        <div class="diamond-cell"><h4>Adversary</h4><p>${esc(report.diamond_model?.adversary)}</p></div>
+                        <div class="diamond-cell"><h4>Victim</h4><p>${esc(report.diamond_model?.victim)}</p></div>
+                        <div class="diamond-cell"><h4>Capabilities</h4><p>${esc(report.diamond_model?.capabilities)}</p></div>
+                        <div class="diamond-cell"><h4>Infrastructure</h4><p>${esc(report.diamond_model?.infrastructure)}</p></div>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h3>TTPs (Tactics, Techniques & Procedures)</h3>
+                    <ul>${(report.ttps || []).map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+                </div>
+
+                <div class="report-section">
+                    <h3>Recommendations</h3>
+                    <ul>${(report.recommendations || []).map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+                </div>
+
+                <div class="report-section">
+                    <h3>Citations</h3>
+                    <ul>${(report.citations || []).map(c => `<li><a href="${esc(c)}" target="_blank" rel="noopener">${esc(c)}</a></li>`).join('')}</ul>
+                </div>
+            `;
+            document.getElementById('reportContent').innerHTML = html;
+        }
+
+        async function saveReport() {
+            if (!currentReport) return;
+            try {
+                const res = await fetch('/api/apt-groups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentReport)
+                });
+                const data = await res.json();
+                document.getElementById('saveReportBtn').style.display = 'none';
+                alert('Report saved successfully!');
+            } catch (err) {
+                alert('Failed to save: ' + err.message);
+            }
+        }
+
+        function backToList() {
+            document.getElementById('reportView').classList.remove('visible');
+            document.getElementById('aptListView').style.display = 'block';
+            loadAptGroups();
+        }
+
+        async function loadAptGroups() {
+            try {
+                const res = await fetch('/api/apt-groups');
+                const groups = await res.json();
+                const grid = document.getElementById('aptGrid');
+
+                if (groups.length === 0) {
+                    grid.innerHTML = '<div class="empty-state"><div class="icon">🎯</div><p>No APT groups added yet</p><p class="hint">Click "+ Create APT Report" to generate your first report</p></div>';
+                    return;
+                }
+
+                grid.innerHTML = groups.map(g => `
+                    <div class="apt-card" onclick="viewReport(${JSON.stringify(g).replace(/"/g, '&quot;')})">
+                        <div class="card-name">${esc(g.name || 'Unknown')}</div>
+                        <div class="card-meta">${esc(g.origin || '')} · ${esc(g.type || '')} · Added: ${esc(g.created_at?.split('T')[0] || '')}</div>
+                        <div class="card-summary">${esc(g.executive_summary || 'No summary available.')}</div>
+                        <div class="card-actions">
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); deleteGroup('${g.id}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function viewReport(report) {
+            currentReport = report;
+            renderReport(report);
+            document.getElementById('aptListView').style.display = 'none';
+            document.getElementById('reportView').classList.add('visible');
+            document.getElementById('saveReportBtn').style.display = 'none';
+        }
+
+        async function deleteGroup(id) {
+            if (!confirm('Delete this APT group report?')) return;
+            await fetch(`/api/apt-groups/${id}`, { method: 'DELETE' });
+            loadAptGroups();
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+        function hideError() { document.getElementById('errorMsg').style.display = 'none'; }
+
+        function esc(str) {
+            if (!str) return '';
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        // Auto-load
+        loadAptGroups();
+        loadAptFiles();
+
+        // --- Infostealer File Functions ---
+        async function loadInfostealerFiles() {
+            try {
+                const res = await fetch('/api/infostealer-files');
+                const files = await res.json();
+                const list = document.getElementById('infostealerFileList');
+                document.getElementById('docViewer').style.display = 'none';
+
+                if (files.length === 0) {
+                    list.innerHTML = '<div class="empty-state"><div class="icon">📄</div><p>No infostealer files uploaded yet</p><p class="hint">Click "Add File" to upload a .docx report</p></div>';
+                    return;
+                }
+
+                list.style.display = 'block';
+                list.innerHTML = '<div class="file-list">' + files.map((f, i) => `
+                    <div class="file-row" onclick="viewInfostealerFile('${esc(f.name)}')">
+                        <div class="file-icon">📄</div>
+                        <div class="file-info">
+                            <div class="file-name">${esc(f.name)}</div>
+                            <div class="file-meta">${(f.size / 1024).toFixed(1)} KB · Uploaded ${f.uploaded_at.split('T')[0]}</div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); deleteInfostealerFile('${esc(f.name)}')">🗑️</button>
+                        </div>
+                    </div>
+                `).join('') + '</div>';
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function uploadInfostealerFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/api/infostealer-files', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.error) { alert(data.error); return; }
+                alert('File uploaded successfully!');
+                loadInfostealerFiles();
+            } catch (err) {
+                alert('Upload failed: ' + err.message);
+            }
+            input.value = '';
+        }
+
+        async function viewInfostealerFile(filename) {
+            try {
+                const res = await fetch(`/api/infostealer-files/${encodeURIComponent(filename)}/view`);
+                const data = await res.json();
+                if (data.error) { alert(data.error); return; }
+                document.getElementById('infostealerFileList').style.display = 'none';
+                document.getElementById('docViewer').style.display = 'block';
+                document.getElementById('docViewerTitle').textContent = data.filename;
+                const viewer = document.getElementById('docViewerContent');
+                viewer.innerHTML = data.html;
+                // Make content read-only by preventing editing
+                viewer.contentEditable = 'false';
+            } catch (err) {
+                alert('Failed to open file: ' + err.message);
+            }
+        }
+
+        function closeDocViewer() {
+            document.getElementById('docViewer').style.display = 'none';
+            document.getElementById('infostealerFileList').style.display = 'block';
+        }
+
+        async function deleteInfostealerFile(filename) {
+            if (!confirm(`Delete "${filename}"?`)) return;
+            await fetch(`/api/infostealer-files/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+            loadInfostealerFiles();
+        }
+
+        // --- APT File Functions ---
+        async function loadAptFiles() {
+            try {
+                const res = await fetch('/api/apt-files');
+                const files = await res.json();
+                const list = document.getElementById('aptFileList');
+                document.getElementById('aptDocViewer').style.display = 'none';
+
+                if (files.length === 0) {
+                    list.innerHTML = '';
+                    return;
+                }
+
+                list.style.display = 'block';
+                list.innerHTML = '<div class="file-list">' + files.map(f => `
+                    <div class="file-row" onclick="viewAptFile('${esc(f.name)}')">
+                        <div class="file-icon">📄</div>
+                        <div class="file-info">
+                            <div class="file-name">${esc(f.name)}</div>
+                            <div class="file-meta">${(f.size / 1024).toFixed(1)} KB · Uploaded ${f.uploaded_at.split('T')[0]}</div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); deleteAptFile('${esc(f.name)}')">🗑️</button>
+                        </div>
+                    </div>
+                `).join('') + '</div>';
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function uploadAptFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/api/apt-files', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.error) { alert(data.error); return; }
+                alert('File uploaded successfully!');
+                loadAptFiles();
+            } catch (err) {
+                alert('Upload failed: ' + err.message);
+            }
+            input.value = '';
+        }
+
+        async function viewAptFile(filename) {
+            try {
+                const res = await fetch(`/api/apt-files/${encodeURIComponent(filename)}/view`);
+                const data = await res.json();
+                if (data.error) { alert(data.error); return; }
+                document.getElementById('aptFileList').style.display = 'none';
+                document.getElementById('aptGrid').style.display = 'none';
+                document.getElementById('aptDocViewer').style.display = 'block';
+                document.getElementById('aptDocViewerTitle').textContent = data.filename;
+                const viewer = document.getElementById('aptDocViewerContent');
+                viewer.innerHTML = data.html;
+                viewer.contentEditable = 'false';
+            } catch (err) {
+                alert('Failed to open file: ' + err.message);
+            }
+        }
+
+        function closeAptDocViewer() {
+            document.getElementById('aptDocViewer').style.display = 'none';
+            document.getElementById('aptFileList').style.display = 'block';
+            document.getElementById('aptGrid').style.display = 'grid';
+        }
+
+        async function deleteAptFile(filename) {
+            if (!confirm(`Delete "${filename}"?`)) return;
+            await fetch(`/api/apt-files/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+            loadAptFiles();
+        }
+    </script>
+</body>
+</html>

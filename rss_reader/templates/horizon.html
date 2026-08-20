@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Intelligence Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/neo-theme.css">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --accent: #4f46e5;
+            --accent-dim: #6366f1;
+            --accent-glow: rgba(79, 70, 229, 0.08);
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #059669;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-active: rgba(79, 70, 229, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(26, 26, 46, 0.02) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(26, 26, 46, 0.01) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(26, 26, 46, 0.01) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 200px;
+            background: var(--bg-primary);
+            border-right: none;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0;
+            z-index: 150;
+            box-shadow: none; border-right: 1px solid var(--border);
+        }
+
+        .sidebar .sidebar-brand {
+            padding: 0 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .sidebar .sidebar-brand h2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .sidebar .sidebar-brand p {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+                .nav-section-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 0.8rem 1rem 0.3rem;
+            margin-top: 0.5rem;
+        }
+        .nav-section-title:first-child {
+            margin-top: 0;
+        }
+
+        .sidebar .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            padding: 0 0.75rem;
+        }
+
+        .sidebar .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .sidebar .nav-links a:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar .nav-links a.active {
+            background: var(--bg-primary);
+            color: var(--accent);
+            font-weight: 600;
+            border: none;
+            background: rgba(79, 70, 229, 0.06);
+        }
+
+        .app-content {
+            margin-left: 200px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; padding: 1rem 0; }
+            .sidebar .sidebar-brand { display: none; }
+            .sidebar .nav-links a span { display: none; }
+            .sidebar .nav-links a { justify-content: center; padding: 0.6rem; }
+            .app-content { margin-left: 60px; }
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .brand h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .brand .tagline {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            border-radius: 8px;
+            width: 300px;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.85rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        .stats-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0.6rem 2rem;
+        }
+
+        .stats-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            overflow-x: auto;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            font-size: 0.75rem;
+        }
+
+        .stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .stat-dot.live { background: var(--success); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .stat-label { color: var(--text-muted); }
+        .stat-value { color: var(--text-primary); font-weight: 600; }
+
+        .time-filter-wrap {
+            margin-left: auto;
+        }
+
+        .time-filter-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.35rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-filter-select:hover {
+            border-color: var(--accent);
+        }
+
+        .time-filter-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .filter-bar {
+            max-width: 1600px;
+            margin: 1.5rem auto 0;
+            padding: 0 2rem;
+        }
+
+        .filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .chip {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .chip.active {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .chip .chip-count {
+            background: var(--bg-primary);
+            padding: 0.1rem 0.4rem;
+            border-radius: 8px;
+            margin-left: 0.3rem;
+            font-size: 0.65rem;
+        }
+
+        .main {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+        }
+
+        .view-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .article-count {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .article-count strong {
+            color: var(--accent);
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.25rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 0.25rem;
+        }
+
+        .view-btn {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-btn.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        /* Timeline view */
+        .timeline { position: relative; }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent), var(--border));
+            border-radius: 1px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 50px;
+            padding-bottom: 1.25rem;
+            animation: fadeIn 0.4s ease forwards;
+            opacity: 0;
+        }
+
+        .timeline-item:nth-child(1) { animation-delay: 0.05s; }
+        .timeline-item:nth-child(2) { animation-delay: 0.1s; }
+        .timeline-item:nth-child(3) { animation-delay: 0.15s; }
+        .timeline-item:nth-child(4) { animation-delay: 0.2s; }
+        .timeline-item:nth-child(5) { animation-delay: 0.25s; }
+        .timeline-item:nth-child(n+6) { animation-delay: 0.3s; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: 14px;
+            top: 1rem;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--bg-primary);
+            border: 3px solid var(--accent);
+            z-index: 1;
+        }
+
+        .article-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.25s;
+            cursor: pointer;
+        }
+
+        .article-card:hover {
+            border-color: var(--accent);
+            background: var(--bg-hover);
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--border-active);
+        }
+
+        .article-card .source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.2rem 0.6rem;
+            background: var(--accent-glow);
+            border: 1px solid var(--accent-dim);
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.6rem;
+        }
+
+        .article-card .title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            display: block;
+        }
+
+        .article-card .title:hover { color: var(--accent); }
+
+        .article-card .summary {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .article-card .meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .article-card .meta .time-ago {
+            color: var(--warning);
+            font-weight: 500;
+        }
+
+        .article-card .tags {
+            display: flex;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+        }
+
+        .article-card .tag {
+            padding: 0.15rem 0.5rem;
+            background: var(--bg-primary);
+            border-radius: 3px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        /* Grid view */
+        .grid-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+
+        .grid-view .article-card {
+            animation: fadeIn 0.3s ease forwards;
+            opacity: 0;
+        }
+
+        .grid-view .article-card:hover { transform: translateY(-3px); }
+
+        /* Compact view */
+        .compact-view .article-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            transition: all 0.2s;
+            cursor: pointer;
+            animation: fadeIn 0.2s ease forwards;
+            opacity: 0;
+        }
+
+        .compact-view .article-row:hover { background: var(--bg-card); }
+
+        .compact-view .row-source {
+            min-width: 120px;
+            font-size: 0.7rem;
+            color: var(--accent);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .compact-view .row-title {
+            flex: 1;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .compact-view .row-title:hover { color: var(--accent); }
+
+        .compact-view .row-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .cyber-loader {
+            width: 60px;
+            height: 60px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loading-text {
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        /* Reading pane */
+        .reading-pane {
+            position: fixed;
+            top: 0;
+            right: -600px;
+            width: 600px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            z-index: 200;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .reading-pane.open {
+            right: 0;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .reading-pane .rp-header {
+            padding: 1.5rem 2rem 0;
+            position: relative;
+        }
+
+        .reading-pane .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .reading-pane .close-btn:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .reading-pane .rp-source {
+            font-size: 0.7rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 0.75rem;
+        }
+
+        .reading-pane .rp-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 0.5rem;
+            padding-right: 2rem;
+        }
+
+        .reading-pane .rp-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .rp-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border);
+            padding: 0 2rem;
+            gap: 0;
+        }
+
+        .rp-tab {
+            padding: 0.7rem 1.2rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+
+        .rp-tab:hover { color: var(--text-primary); }
+
+        .rp-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .rp-tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem 2rem;
+        }
+
+        .rp-tab-panel { display: none; }
+        .rp-tab-panel.active { display: block; }
+
+        .rp-summary {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .rp-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .rp-link:hover { text-decoration: underline; }
+
+        /* IOC Tab Styles */
+        .ioc-loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .ioc-loading .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .ioc-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .ioc-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ioc-section-title .count {
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 10px;
+        }
+
+        .ioc-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 0.4rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.78rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ioc-item:hover {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .ioc-item .vt-btn {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+
+        .ioc-item .vt-btn:hover { background: #388E3C; }
+
+        .ioc-no-results {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* TTP Styles */
+        .ttp-summary {
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+        }
+        .ttp-tactic-group {
+            margin-bottom: 1.25rem;
+        }
+        .ttp-tactic-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--accent);
+            padding: 0.5rem 0;
+            border-bottom: 2px solid var(--accent);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .ttp-tactic-title .count {
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .ttp-item {
+            display: flex;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.35rem;
+            transition: background 0.15s;
+            border: 1px solid transparent;
+        }
+        .ttp-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--border);
+        }
+        .ttp-id {
+            flex-shrink: 0;
+            min-width: 75px;
+        }
+        .ttp-id a {
+            font-size: 0.72rem;
+            font-weight: 700;
+            font-family: monospace;
+            color: #d63384;
+            text-decoration: none;
+            background: rgba(214, 51, 132, 0.08);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+        .ttp-id a:hover { text-decoration: underline; }
+        .ttp-detail { flex: 1; }
+        .ttp-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.15rem;
+        }
+        .ttp-desc {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+        .ttp-key-hint {
+            margin-top: 0.75rem;
+            padding: 0.6rem 1rem;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: #856404;
+        }
+
+        /* VT Result Modal */
+        .vt-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vt-modal.open { display: flex; }
+
+        .vt-modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .vt-modal-content h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .vt-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+
+        .vt-stat .label { color: var(--text-muted); }
+        .vt-stat .value { font-weight: 600; color: var(--text-primary); }
+        .vt-stat .value.danger { color: var(--danger); }
+        .vt-stat .value.safe { color: #4CAF50; }
+
+        .vt-link-btn {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.6rem 1.2rem;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .vt-link-btn:hover { opacity: 0.9; }
+
+        .backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 199;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .backdrop.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+        @media (max-width: 768px) {
+            .header-content { flex-wrap: wrap; }
+            .search-box input { width: 100%; }
+            .grid-view { grid-template-columns: 1fr; }
+            .reading-pane { width: 100%; right: -100%; }
+            .timeline::before { left: 10px; }
+            .timeline-item { padding-left: 35px; }
+            .timeline-dot { left: 4px; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Add Feed Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 300;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 500px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.open .modal {
+            transform: translateY(0);
+        }
+
+        .modal h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .modal .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .modal label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+            font-weight: 500;
+        }
+
+        .modal input {
+            width: 100%;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.7rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            transition: border-color 0.2s;
+        }
+
+        .modal input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .modal .form-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .btn-secondary {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        .modal .feed-list {
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        .modal .feed-list h3 {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .modal .feed-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+
+        .modal .feed-item:hover {
+            background: var(--bg-card);
+        }
+
+        .modal .feed-item .feed-name {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .modal .feed-item .remove-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .modal .feed-item .remove-btn:hover {
+            color: var(--danger);
+            background: rgba(255, 71, 87, 0.1);
+        }
+
+        .modal .error-msg {
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .modal .success-msg {
+            color: var(--success);
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="cyber-loader"></div>
+            <p class="loading-text">Fetching threat intelligence feeds...</p>
+        </div>
+
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <h2>🛡️ CTI Dashboard</h2>
+                <p>Threat Intel</p>
+            </div>
+            <div class="nav-links">
+                <div class="nav-section-title">OVERVIEW</div>
+                <a href="/" class="active"><span>🛡️</span> <span>Horizon Scans</span></a>
+                <a href="/vulnerabilities"><span>⚠️</span> <span>Vulnerabilities</span></a>
+                <a href="/npm"><span>📦</span> <span>NPM</span></a>
+                <a href="/ransomware"><span>💀</span> <span>Ransomware</span></a>
+                <a href="/adversaries"><span>👥</span> <span>Adversaries</span></a>
+                <a href="/knowledgegraph"><span>🕸️</span> <span>Knowledge Graph</span></a>
+                <div class="nav-section-title">ANALYSIS</div>
+                <a href="/osint"><span>🔎</span> <span>OSINT</span></a>
+                <a href="/sandbox"><span>🧪</span> <span>Sandbox</span></a>
+            </div>
+        </nav>
+
+        <div class="app-content">
+        <header class="header">
+            <div class="header-content">
+                <div class="brand">
+                    <div class="brand-icon">🛡️</div>
+                    <div>
+                        <h1>Horizon Scans Dashboard</h1>
+                        <p class="tagline">Threat Intelligence Feed Aggregator</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search articles, sources, keywords... ( / )" autocomplete="off">
+                    </div>
+                    <button class="btn btn-primary" id="addFeedBtn" onclick="openAddFeedModal()">
+                        + Add Feed
+                    </button>
+                    <button class="btn btn-primary" id="refreshBtn" onclick="loadFeeds()">
+                        ⟳ Refresh
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stats-content">
+                <div class="stat-item">
+                    <span class="stat-dot live"></span>
+                    <span class="stat-label">Status:</span>
+                    <span class="stat-value" id="statusText">Ready</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Articles:</span>
+                    <span class="stat-value" id="totalArticles">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Sources:</span>
+                    <span class="stat-value" id="activeSources">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Last Fetch:</span>
+                    <span class="stat-value" id="lastFetch">--</span>
+                </div>
+                <div class="stat-item time-filter-wrap">
+                    <span class="stat-label">🕐</span>
+                    <select id="timeFilter" class="time-filter-select" onchange="filterAndRender()">
+                        <option value="1">Last 1 Hour</option>
+                        <option value="2">Last 2 Hours</option>
+                        <option value="4">Last 4 Hours</option>
+                        <option value="24">Last 24 Hours</option>
+                        <option value="72">Last 3 Days</option>
+                        <option value="all" selected>All Time</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-chips" id="filterChips">
+                <span class="chip active" data-source="all" onclick="filterBySource('all', this)">All Sources</span>
+            </div>
+        </div>
+
+        <main class="main">
+            <div class="view-controls">
+                <div class="article-count" id="articleCount"></div>
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="timeline" onclick="setView('timeline')">⏱ Timeline</button>
+                    <button class="view-btn" data-view="grid" onclick="setView('grid')">⊞ Grid</button>
+                    <button class="view-btn" data-view="compact" onclick="setView('compact')">☰ Compact</button>
+                </div>
+            </div>
+            <div id="feedContainer"></div>
+        </main>
+
+        <div class="backdrop" id="backdrop" onclick="closeReadingPane()"></div>
+        <div class="reading-pane" id="readingPane">
+            <div class="rp-header">
+                <button class="close-btn" onclick="closeReadingPane()">✕</button>
+                <div class="rp-source" id="rpSource"></div>
+                <h2 class="rp-title" id="rpTitle"></h2>
+                <div class="rp-meta" id="rpMeta"></div>
+            </div>
+            <div class="rp-tabs">
+                <button class="rp-tab active" onclick="switchRpTab('article')">📄 Article</button>
+                <button class="rp-tab" onclick="switchRpTab('iocs')">🔍 IOCs</button>
+                <button class="rp-tab" onclick="switchRpTab('ttps')">🎯 TTPs</button>
+            </div>
+            <div class="rp-tab-content">
+                <div class="rp-tab-panel active" id="rpArticlePanel">
+                    <div class="rp-summary" id="rpSummary"></div>
+                    <a class="rp-link" id="rpLink" href="#" target="_blank" rel="noopener noreferrer">
+                        Read full article →
+                    </a>
+                </div>
+                <div class="rp-tab-panel" id="rpIocPanel">
+                    <div id="iocContent">
+                        <div class="ioc-loading" id="iocLoading" style="display:none;">
+                            <div class="spinner"></div>
+                            <p>Analyzing article for IOCs...</p>
+                        </div>
+                        <div id="iocResults"></div>
+                    </div>
+                </div>
+                <div class="rp-tab-panel" id="rpTtpPanel">
+                    <div id="ttpContent">
+                        <div class="ioc-loading" id="ttpLoading" style="display:none;">
+                            <div class="spinner"></div>
+                            <p>Extracting MITRE ATT&CK TTPs...</p>
+                        </div>
+                        <div id="ttpResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VirusTotal Result Modal -->
+        <div class="vt-modal" id="vtModal" onclick="if(event.target===this)closeVtModal()">
+            <div class="vt-modal-content">
+                <h3>🔬 VirusTotal Analysis</h3>
+                <div id="vtResultContent">
+                    <div class="ioc-loading">
+                        <div class="spinner"></div>
+                        <p>Querying VirusTotal...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Feed Modal -->
+        <div class="modal-overlay" id="addFeedModal">
+            <div class="modal">
+                <h2>➕ Manage RSS Feeds</h2>
+                <div class="form-group">
+                    <label for="feedName">Feed Name</label>
+                    <input type="text" id="feedName" placeholder="e.g. Recorded Future">
+                </div>
+                <div class="form-group">
+                    <label for="feedUrl">Feed URL</label>
+                    <input type="url" id="feedUrl" placeholder="https://example.com/feed.xml">
+                </div>
+                <div id="feedFormMsg"></div>
+                <div class="form-actions">
+                    <button class="btn-secondary" onclick="closeAddFeedModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="addNewFeed()">Add Feed</button>
+                </div>
+                <div class="feed-list">
+                    <h3>Current Feeds</h3>
+                    <div id="currentFeedList"></div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <script>
+        let allArticles = [];
+        let filteredArticles = [];
+        let currentView = 'timeline';
+        let activeSource = 'all';
+
+        async function loadFeeds() {
+            const overlay = document.getElementById('loadingOverlay');
+            const btn = document.getElementById('refreshBtn');
+            overlay.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/feeds?dashboard=horizon');
+                const data = await res.json();
+                allArticles = data.articles;
+
+                document.getElementById('totalArticles').textContent = data.total;
+                document.getElementById('activeSources').textContent = data.stats.filter(s => !s.error).length;
+                document.getElementById('lastFetch').textContent = new Date().toLocaleTimeString();
+                document.getElementById('statusText').textContent = 'Live';
+
+                buildSourceChips(data.stats);
+                filterAndRender();
+            } catch (err) {
+                document.getElementById('statusText').textContent = 'Error';
+            }
+
+            overlay.classList.add('hidden');
+            btn.disabled = false;
+        }
+
+        function buildSourceChips(stats) {
+            const container = document.getElementById('filterChips');
+            container.innerHTML = '<span class="chip active" data-source="all" onclick="filterBySource(\'all\', this)">All Sources</span>';
+            stats.filter(s => !s.error && s.count > 0).forEach(s => {
+                const el = document.createElement('span');
+                el.className = 'chip';
+                el.dataset.source = s.name;
+                el.onclick = function() { filterBySource(s.name, this); };
+                el.innerHTML = escapeHtml(s.name) + '<span class="chip-count">' + s.count + '</span>';
+                container.appendChild(el);
+            });
+        }
+
+        function filterBySource(source, el) {
+            activeSource = source;
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            filterAndRender();
+        }
+
+        function filterAndRender() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const timeValue = document.getElementById('timeFilter').value;
+            const now = new Date();
+
+            filteredArticles = allArticles.filter(a => {
+                const matchSource = activeSource === 'all' || a.source === activeSource;
+                const matchQuery = !query || 
+                    a.title.toLowerCase().includes(query) ||
+                    a.source.toLowerCase().includes(query) ||
+                    (a.summary && a.summary.toLowerCase().includes(query)) ||
+                    (a.tags && a.tags.some(t => t.toLowerCase().includes(query)));
+
+                let matchTime = true;
+                if (timeValue !== 'all' && a.published_iso) {
+                    const articleDate = new Date(a.published_iso);
+                    const hoursAgo = (now - articleDate) / (1000 * 60 * 60);
+                    matchTime = hoursAgo <= parseInt(timeValue);
+                }
+
+                return matchSource && matchQuery && matchTime;
+            });
+
+            document.getElementById('articleCount').innerHTML = 'Showing <strong>' + filteredArticles.length + '</strong> of ' + allArticles.length + ' articles';
+            renderView();
+        }
+
+        function setView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-view="' + view + '"]').classList.add('active');
+            renderView();
+        }
+
+        function renderView() {
+            const container = document.getElementById('feedContainer');
+            if (filteredArticles.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No articles match your filter</p></div>';
+                return;
+            }
+            switch (currentView) {
+                case 'timeline': renderTimeline(container); break;
+                case 'grid': renderGrid(container); break;
+                case 'compact': renderCompact(container); break;
+            }
+        }
+
+        function renderTimeline(container) {
+            let html = '<div class="timeline">';
+            filteredArticles.forEach((a, i) => {
+                html += '<div class="timeline-item" onclick="openArticle(' + i + ')">'
+                    + '<div class="timeline-dot"></div>'
+                    + '<div class="article-card">'
+                    + '<span class="source-badge">' + escapeHtml(a.source) + '</span>'
+                    + '<a class="title" href="' + escapeHtml(a.link) + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">' + escapeHtml(a.title) + '</a>'
+                    + (a.summary ? '<p class="summary">' + escapeHtml(stripHtml(a.summary)) + '</p>' : '')
+                    + '<div class="meta">'
+                    + '<span class="time-ago">' + timeAgo(a.published_iso) + '</span>'
+                    + '<span>' + escapeHtml(a.published) + '</span>'
+                    + (a.tags && a.tags.length ? '<div class="tags">' + a.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div>' : '')
+                    + '</div></div></div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderGrid(container) {
+            let html = '<div class="grid-view">';
+            filteredArticles.forEach((a, i) => {
+                html += '<div class="article-card" style="animation-delay:' + Math.min(i * 0.05, 0.5) + 's" onclick="openArticle(' + i + ')">'
+                    + '<span class="source-badge">' + escapeHtml(a.source) + '</span>'
+                    + '<a class="title" href="' + escapeHtml(a.link) + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">' + escapeHtml(a.title) + '</a>'
+                    + (a.summary ? '<p class="summary">' + escapeHtml(stripHtml(a.summary)) + '</p>' : '')
+                    + '<div class="meta"><span class="time-ago">' + timeAgo(a.published_iso) + '</span>'
+                    + (a.tags && a.tags.length ? '<div class="tags">' + a.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div>' : '')
+                    + '</div></div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderCompact(container) {
+            let html = '<div class="compact-view">';
+            filteredArticles.forEach((a, i) => {
+                html += '<div class="article-row" style="animation-delay:' + Math.min(i * 0.02, 0.3) + 's" onclick="openArticle(' + i + ')">'
+                    + '<span class="row-source">' + escapeHtml(a.source) + '</span>'
+                    + '<a class="row-title" href="' + escapeHtml(a.link) + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">' + escapeHtml(a.title) + '</a>'
+                    + '<span class="row-time">' + timeAgo(a.published_iso) + '</span>'
+                    + '</div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function openArticle(index) {
+            const a = filteredArticles[index];
+            document.getElementById('rpSource').textContent = a.source;
+            document.getElementById('rpTitle').textContent = a.title;
+            document.getElementById('rpMeta').textContent = a.published;
+            document.getElementById('rpSummary').textContent = stripHtml(a.summary || 'No summary available.');
+            document.getElementById('rpLink').href = a.link;
+            document.getElementById('readingPane').classList.add('open');
+            document.getElementById('backdrop').classList.add('open');
+
+            // Reset to Article tab
+            switchRpTab('article');
+
+            // Reset IOC panel
+            document.getElementById('iocResults').innerHTML = '';
+            document.getElementById('iocLoading').style.display = 'none';
+
+            // Reset TTP panel
+            document.getElementById('ttpResults').innerHTML = '';
+            document.getElementById('ttpLoading').style.display = 'none';
+
+            // Store current article for IOC/TTP extraction
+            window.currentArticle = a;
+            window.currentIOCsLoaded = false;
+            window.currentTTPsLoaded = false;
+        }
+
+        function closeReadingPane() {
+            document.getElementById('readingPane').classList.remove('open');
+            document.getElementById('backdrop').classList.remove('open');
+        }
+
+        function switchRpTab(tab) {
+            document.querySelectorAll('.rp-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.rp-tab-panel').forEach(p => p.classList.remove('active'));
+
+            if (tab === 'article') {
+                document.querySelectorAll('.rp-tab')[0].classList.add('active');
+                document.getElementById('rpArticlePanel').classList.add('active');
+            } else if (tab === 'iocs') {
+                document.querySelectorAll('.rp-tab')[1].classList.add('active');
+                document.getElementById('rpIocPanel').classList.add('active');
+                // Load IOCs if not already loaded
+                if (!window.currentIOCsLoaded && window.currentArticle) {
+                    extractArticleIOCs(window.currentArticle);
+                }
+            } else if (tab === 'ttps') {
+                document.querySelectorAll('.rp-tab')[2].classList.add('active');
+                document.getElementById('rpTtpPanel').classList.add('active');
+                // Load TTPs if not already loaded
+                if (!window.currentTTPsLoaded && window.currentArticle) {
+                    extractArticleTTPs(window.currentArticle);
+                }
+            }
+        }
+
+        async function extractArticleIOCs(article) {
+            window.currentIOCsLoaded = true;
+            const loading = document.getElementById('iocLoading');
+            const results = document.getElementById('iocResults');
+            loading.style.display = 'block';
+            results.innerHTML = '';
+
+            try {
+                const resp = await fetch('/api/extract-iocs', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        url: article.link,
+                        title: article.title,
+                        summary: article.summary || ''
+                    })
+                });
+                const data = await resp.json();
+                loading.style.display = 'none';
+
+                if (!data.has_content) {
+                    results.innerHTML = '<div class="ioc-no-results">No IOCs found in this article.</div>';
+                    return;
+                }
+
+                let html = '';
+                const iocs = data.iocs;
+
+                if (iocs.ipv4 && iocs.ipv4.length) {
+                    html += renderIocSection('IP Addresses', iocs.ipv4, 'ipv4');
+                }
+                if (iocs.hashes && iocs.hashes.length) {
+                    const hashValues = iocs.hashes.map(h => ({value: h.value || h, type: h.type || 'hash', display: (h.type || 'HASH') + ': ' + (h.value || h)}));
+                    html += renderIocSectionHashes('File Hashes', hashValues);
+                }
+                if (iocs.cves && iocs.cves.length) {
+                    html += renderIocSectionPlain('CVEs', iocs.cves);
+                }
+                if (iocs.domains && iocs.domains.length) {
+                    html += renderIocSection('Domains', iocs.domains, 'domain');
+                }
+                if (iocs.npm_packages && iocs.npm_packages.length) {
+                    html += renderIocSectionPlain('NPM Packages', iocs.npm_packages);
+                }
+
+                results.innerHTML = html;
+            } catch (err) {
+                loading.style.display = 'none';
+                results.innerHTML = '<div class="ioc-no-results">Error extracting IOCs: ' + escapeHtml(err.message) + '</div>';
+            }
+        }
+
+        async function extractArticleTTPs(article) {
+            window.currentTTPsLoaded = true;
+            const loading = document.getElementById('ttpLoading');
+            const results = document.getElementById('ttpResults');
+            loading.style.display = 'block';
+            results.innerHTML = '';
+
+            try {
+                const resp = await fetch('/api/extract-ttps', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        url: article.link,
+                        title: article.title,
+                        summary: article.summary || ''
+                    })
+                });
+                const data = await resp.json();
+                loading.style.display = 'none';
+
+                if (data.error && !data.ttps) {
+                    results.innerHTML = '<div class="ioc-no-results">' + escapeHtml(data.error) + '</div>';
+                    return;
+                }
+
+                if (!data.ttps || data.ttps.length === 0) {
+                    results.innerHTML = '<div class="ioc-no-results">No MITRE ATT&CK TTPs identified in this article.</div>';
+                    return;
+                }
+
+                // Group by tactic
+                const byTactic = {};
+                data.ttps.forEach(ttp => {
+                    const tactic = ttp.tactic || 'Unknown';
+                    if (!byTactic[tactic]) byTactic[tactic] = [];
+                    byTactic[tactic].push(ttp);
+                });
+
+                let html = '<div class="ttp-summary">Found <strong>' + data.ttps.length + '</strong> TTPs across <strong>' + Object.keys(byTactic).length + '</strong> tactics</div>';
+
+                for (const [tactic, ttps] of Object.entries(byTactic)) {
+                    html += '<div class="ttp-tactic-group">';
+                    html += '<div class="ttp-tactic-title">' + escapeHtml(tactic) + ' <span class="count">' + ttps.length + '</span></div>';
+                    ttps.forEach(ttp => {
+                        const mitreUrl = 'https://attack.mitre.org/techniques/' + (ttp.technique_id || '').replace('.', '/');
+                        html += '<div class="ttp-item">';
+                        html += '<div class="ttp-id"><a href="' + mitreUrl + '" target="_blank" rel="noopener">' + escapeHtml(ttp.technique_id || '') + '</a></div>';
+                        html += '<div class="ttp-detail">';
+                        html += '<div class="ttp-name">' + escapeHtml(ttp.technique_name || '') + '</div>';
+                        html += '<div class="ttp-desc">' + escapeHtml(ttp.description || '') + '</div>';
+                        html += '</div></div>';
+                    });
+                    html += '</div>';
+                }
+
+                results.innerHTML = html;
+            } catch (err) {
+                loading.style.display = 'none';
+                results.innerHTML = '<div class="ioc-no-results">Error extracting TTPs: ' + escapeHtml(err.message) + '</div>';
+            }
+        }
+
+        function renderIocSection(title, items, iocType) {
+            let html = '<div class="ioc-section"><div class="ioc-section-title">' + title + ' <span class="count">' + items.length + '</span></div>';
+            items.forEach(item => {
+                html += '<div class="ioc-item" onclick="lookupVT(\'' + escapeHtml(item) + '\', \'' + iocType + '\')">'
+                    + '<span>' + escapeHtml(item) + '</span>'
+                    + '<button class="vt-btn">VT Lookup</button>'
+                    + '</div>';
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function renderIocSectionHashes(title, items) {
+            let html = '<div class="ioc-section"><div class="ioc-section-title">' + title + ' <span class="count">' + items.length + '</span></div>';
+            items.forEach(item => {
+                html += '<div class="ioc-item" onclick="lookupVT(\'' + escapeHtml(item.value) + '\', \'' + escapeHtml(item.type) + '\')">'
+                    + '<span>' + escapeHtml(item.display) + '</span>'
+                    + '<button class="vt-btn">VT Lookup</button>'
+                    + '</div>';
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function renderIocSectionPlain(title, items) {
+            let html = '<div class="ioc-section"><div class="ioc-section-title">' + title + ' <span class="count">' + items.length + '</span></div>';
+            items.forEach(item => {
+                html += '<div class="ioc-item" style="cursor:default;">'
+                    + '<span>' + escapeHtml(item) + '</span>'
+                    + '</div>';
+            });
+            html += '</div>';
+            return html;
+        }
+
+        async function lookupVT(ioc, type) {
+            event.stopPropagation();
+            const modal = document.getElementById('vtModal');
+            const content = document.getElementById('vtResultContent');
+            modal.classList.add('open');
+            content.innerHTML = '<div class="ioc-loading"><div class="spinner"></div><p>Querying VirusTotal...</p></div>';
+
+            try {
+                const resp = await fetch('/api/vt/lookup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ioc: ioc, type: type})
+                });
+                const data = await resp.json();
+
+                if (data.error) {
+                    content.innerHTML = '<p style="color:var(--danger);">Error: ' + escapeHtml(data.error) + '</p>'
+                        + '<a class="vt-link-btn" href="https://www.virustotal.com/gui/search/' + encodeURIComponent(ioc) + '" target="_blank">Open in VirusTotal →</a>';
+                    return;
+                }
+
+                if (!data.found) {
+                    content.innerHTML = '<p>No results found on VirusTotal for this IOC.</p>'
+                        + '<a class="vt-link-btn" href="' + escapeHtml(data.vt_link) + '" target="_blank">Search on VirusTotal →</a>';
+                    return;
+                }
+
+                let html = '<div class="vt-stat"><span class="label">IOC</span><span class="value" style="font-family:monospace;font-size:0.75rem;word-break:break-all;">' + escapeHtml(ioc) + '</span></div>';
+                html += '<div class="vt-stat"><span class="label">Malicious</span><span class="value ' + (data.malicious > 0 ? 'danger' : 'safe') + '">' + data.malicious + ' / ' + data.total + '</span></div>';
+                html += '<div class="vt-stat"><span class="label">Suspicious</span><span class="value">' + data.suspicious + '</span></div>';
+                html += '<div class="vt-stat"><span class="label">Undetected</span><span class="value">' + data.undetected + '</span></div>';
+                html += '<div class="vt-stat"><span class="label">Harmless</span><span class="value safe">' + data.harmless + '</span></div>';
+
+                if (data.name) html += '<div class="vt-stat"><span class="label">Name</span><span class="value">' + escapeHtml(data.name) + '</span></div>';
+                if (data.country) html += '<div class="vt-stat"><span class="label">Country</span><span class="value">' + escapeHtml(data.country) + '</span></div>';
+                if (data.as_owner) html += '<div class="vt-stat"><span class="label">AS Owner</span><span class="value">' + escapeHtml(data.as_owner) + '</span></div>';
+
+                html += '<a class="vt-link-btn" href="' + escapeHtml(data.vt_link) + '" target="_blank">View Full Report on VirusTotal →</a>';
+                content.innerHTML = html;
+            } catch (err) {
+                content.innerHTML = '<p style="color:var(--danger);">Error: ' + escapeHtml(err.message) + '</p>';
+            }
+        }
+
+        function closeVtModal() {
+            document.getElementById('vtModal').classList.remove('open');
+        }
+
+        function timeAgo(isoDate) {
+            if (!isoDate) return '';
+            try {
+                const diff = Date.now() - new Date(isoDate).getTime();
+                const mins = Math.floor(diff / 60000);
+                if (mins < 1) return 'Just now';
+                if (mins < 60) return mins + 'm ago';
+                const hrs = Math.floor(mins / 60);
+                if (hrs < 24) return hrs + 'h ago';
+                const days = Math.floor(hrs / 24);
+                return days + 'd ago';
+            } catch(e) { return ''; }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function stripHtml(html) {
+            if (!html) return '';
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            return tmp.textContent || '';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { closeVtModal(); closeReadingPane(); }
+            if (e.key === '/' && !e.ctrlKey && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+
+        document.getElementById('searchInput').addEventListener('input', () => {
+            filterAndRender();
+        });
+
+        // Add Feed Modal functions
+        function openAddFeedModal() {
+            document.getElementById('addFeedModal').classList.add('open');
+            document.getElementById('feedName').value = '';
+            document.getElementById('feedUrl').value = '';
+            document.getElementById('feedFormMsg').innerHTML = '';
+            loadFeedList();
+        }
+
+        function closeAddFeedModal() {
+            document.getElementById('addFeedModal').classList.remove('open');
+        }
+
+        async function loadFeedList() {
+            try {
+                const res = await fetch('/api/feeds/list?dashboard=horizon');
+                const data = await res.json();
+                const container = document.getElementById('currentFeedList');
+                container.innerHTML = data.feeds.map(f =>
+                    '<div class="feed-item">'
+                    + '<span class="feed-name">' + escapeHtml(f.name) + '</span>'
+                    + '<button class="remove-btn" onclick="removeFeed(\'' + escapeHtml(f.name).replace(/'/g, "\\'") + '\')">✕ Remove</button>'
+                    + '</div>'
+                ).join('');
+            } catch (e) {}
+        }
+
+        async function addNewFeed() {
+            const name = document.getElementById('feedName').value.trim();
+            const url = document.getElementById('feedUrl').value.trim();
+            const msgEl = document.getElementById('feedFormMsg');
+
+            if (!name || !url) {
+                msgEl.innerHTML = '<p class="error-msg">Please provide both a name and URL.</p>';
+                return;
+            }
+
+            msgEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">Adding feed...</p>';
+
+            try {
+                const res = await fetch('/api/feeds/add', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name, url, dashboard: 'horizon'})
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msgEl.innerHTML = '<p class="success-msg">' + escapeHtml(data.message) + '</p>';
+                    document.getElementById('feedName').value = '';
+                    document.getElementById('feedUrl').value = '';
+                    loadFeedList();
+                    loadFeeds();
+                } else {
+                    msgEl.innerHTML = '<p class="error-msg">' + escapeHtml(data.error) + '</p>';
+                }
+            } catch (e) {
+                msgEl.innerHTML = '<p class="error-msg">Network error. Please try again.</p>';
+            }
+        }
+
+        async function removeFeed(name) {
+            if (!confirm('Remove feed "' + name + '"?')) return;
+            try {
+                const res = await fetch('/api/feeds/remove', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name, dashboard: 'horizon'})
+                });
+                if (res.ok) {
+                    loadFeedList();
+                    loadFeeds();
+                }
+            } catch (e) {}
+        }
+
+        // Close modal on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('addFeedModal').classList.contains('open')) {
+                closeAddFeedModal();
+            }
+        });
+
+        // Close modal on overlay click
+        document.getElementById('addFeedModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('addFeedModal')) closeAddFeedModal();
+        });
+
+        loadFeeds();
+    </script>
+</body>
+</html>

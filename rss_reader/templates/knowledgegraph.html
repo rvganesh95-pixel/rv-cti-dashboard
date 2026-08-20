@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Graph Generator - CTI Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/neo-theme.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --accent: #4f46e5;
+            --accent-dim: #6366f1;
+            --accent-glow: rgba(79, 70, 229, 0.08);
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #059669;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-active: rgba(79, 70, 229, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 200px;
+            background: var(--bg-primary);
+            border-right: none;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0;
+            z-index: 150;
+            box-shadow: none; border-right: 1px solid var(--border);
+        }
+
+        .sidebar .sidebar-brand {
+            padding: 0 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .sidebar .sidebar-brand h2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .sidebar .sidebar-brand p {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+                .nav-section-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 0.8rem 1rem 0.3rem;
+            margin-top: 0.5rem;
+        }
+        .nav-section-title:first-child {
+            margin-top: 0;
+        }
+
+        .sidebar .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            padding: 0 0.75rem;
+        }
+
+        .sidebar .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .sidebar .nav-links a:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar .nav-links a.active {
+            background: var(--bg-primary);
+            color: var(--accent);
+            font-weight: 600;
+            border: none;
+            background: rgba(79, 70, 229, 0.06);
+        }
+
+        .app-content {
+            margin-left: 200px;
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; padding: 1rem 0; }
+            .sidebar .sidebar-brand { display: none; }
+            .sidebar .nav-links a span { display: none; }
+            .sidebar .nav-links a { justify-content: center; padding: 0.6rem; }
+            .app-content { margin-left: 60px; }
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .brand h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .brand .tagline {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-dim);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Main layout */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .input-panel {
+            width: 400px;
+            min-width: 350px;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+        }
+
+        .input-panel-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-primary);
+        }
+
+        .input-panel-header h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .input-panel-header p {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .input-panel-body {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+
+        .text-input {
+            flex: 1;
+            min-height: 300px;
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            resize: none;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--border-active);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .word-count {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+
+        /* Graph panel */
+        .graph-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .graph-toolbar {
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--bg-primary);
+        }
+
+        .graph-stats {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.75rem;
+        }
+
+        .graph-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .graph-stat-label { color: var(--text-muted); }
+        .graph-stat-value { font-weight: 600; }
+
+        .graph-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #graphSvg {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        #graphSvg:active {
+            cursor: grabbing;
+        }
+
+        /* Graph styling */
+        .node circle {
+            stroke: #fff;
+            stroke-width: 2px;
+            cursor: pointer;
+            transition: r 0.2s;
+        }
+
+        .node:hover circle {
+            stroke-width: 3px;
+            filter: brightness(1.1);
+        }
+
+        .node text {
+            font-size: 10px;
+            font-weight: 500;
+            fill: var(--text-primary);
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        .link {
+            stroke-opacity: 0.4;
+            stroke-width: 1.5px;
+        }
+
+        .link-label {
+            font-size: 8px;
+            fill: var(--text-muted);
+            text-anchor: middle;
+            pointer-events: none;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.92);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .cyber-loader {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Empty state */
+        .empty-state {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state p {
+            font-size: 0.85rem;
+        }
+
+        .empty-state .hint {
+            font-size: 0.72rem;
+            margin-top: 0.5rem;
+            opacity: 0.7;
+        }
+
+        /* Error */
+        .error-msg {
+            padding: 0.75rem 1rem;
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            color: #991b1b;
+            font-size: 0.78rem;
+            display: none;
+        }
+
+        /* Tooltip */
+        .graph-tooltip {
+            position: absolute;
+            padding: 0.6rem 0.8rem;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            max-width: 250px;
+            z-index: 200;
+        }
+
+        .graph-tooltip.visible {
+            opacity: 1;
+        }
+
+        /* Legend */
+        .graph-legend {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 0.7rem;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* Triples list */
+        .triples-panel {
+            display: none;
+            width: 350px;
+            border-left: 1px solid var(--border);
+            overflow-y: auto;
+            background: var(--bg-secondary);
+        }
+
+        .triples-panel.visible {
+            display: block;
+        }
+
+        .triples-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-primary);
+            position: sticky;
+            top: 0;
+        }
+
+        .triples-header h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .triple-item {
+            padding: 0.6rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.72rem;
+            line-height: 1.5;
+        }
+
+        .triple-item .subject { color: #2563eb; font-weight: 600; }
+        .triple-item .predicate { color: var(--text-muted); font-style: italic; }
+        .triple-item .object { color: #16a34a; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <h2>🛡️ CTI Dashboard</h2>
+                <p>Threat Intel</p>
+            </div>
+            <div class="nav-links">
+                <div class="nav-section-title">OVERVIEW</div>
+                <a href="/"><span>🛡️</span> <span>Horizon Scans</span></a>
+                <a href="/vulnerabilities"><span>⚠️</span> <span>Vulnerabilities</span></a>
+                <a href="/npm"><span>📦</span> <span>NPM</span></a>
+                <a href="/ransomware"><span>💀</span> <span>Ransomware</span></a>
+                <a href="/adversaries"><span>👥</span> <span>Adversaries</span></a>
+                <a href="/knowledgegraph" class="active"><span>🕸️</span> <span>Knowledge Graph</span></a>
+                <div class="nav-section-title">ANALYSIS</div>
+                <a href="/osint"><span>🔎</span> <span>OSINT</span></a>
+                <a href="/sandbox"><span>🧪</span> <span>Sandbox</span></a>
+            </div>
+        </nav>
+
+        <div class="app-content">
+            <header class="header">
+                <div class="header-content">
+                    <div class="brand">
+                        <div class="brand-icon">🕸️</div>
+                        <div>
+                            <h1>Knowledge Graph Generator</h1>
+                            <p class="tagline">Powered by Claude Sonnet via GitHub Models</p>
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" id="toggleTriplesBtn" onclick="toggleTriples()" style="display:none;">
+                            📋 Triples
+                        </button>
+                        <button class="btn btn-secondary" id="clearBtn" onclick="clearAll()">
+                            🗑️ Clear
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-container">
+                <!-- Input Panel -->
+                <div class="input-panel">
+                    <div class="input-panel-header">
+                        <h3>📝 Input Text</h3>
+                        <p>Paste article or blog content to extract a knowledge graph</p>
+                    </div>
+                    <div class="input-panel-body">
+                        <textarea class="text-input" id="textInput" placeholder="Paste your blog post, article, or any text here...&#10;&#10;The AI will extract entities and relationships to build an interactive knowledge graph."></textarea>
+                        <div class="error-msg" id="errorMsg"></div>
+                        <div class="input-actions">
+                            <button class="btn btn-primary" id="generateBtn" onclick="generateGraph()">
+                                🕸️ Generate Graph
+                            </button>
+                            <span class="word-count" id="wordCount">0 words</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graph Panel -->
+                <div class="graph-panel">
+                    <div class="graph-toolbar">
+                        <div class="graph-stats">
+                            <div class="graph-stat">
+                                <span class="graph-stat-label">Nodes:</span>
+                                <span class="graph-stat-value" id="nodeCount">0</span>
+                            </div>
+                            <div class="graph-stat">
+                                <span class="graph-stat-label">Edges:</span>
+                                <span class="graph-stat-value" id="edgeCount">0</span>
+                            </div>
+                            <div class="graph-stat">
+                                <span class="graph-stat-label">Triples:</span>
+                                <span class="graph-stat-value" id="tripleCount">0</span>
+                            </div>
+                        </div>
+                        <div style="margin-left:auto; display:flex; gap:0.5rem;">
+                            <button class="btn btn-secondary" onclick="resetZoom()" title="Reset zoom">⟲ Reset</button>
+                        </div>
+                    </div>
+
+                    <div class="graph-container" id="graphContainer">
+                        <svg id="graphSvg"></svg>
+
+                        <div class="empty-state" id="emptyState">
+                            <div class="icon">🕸️</div>
+                            <p>No graph generated yet</p>
+                            <p class="hint">Paste text in the input panel and click "Generate Graph"</p>
+                        </div>
+
+                        <div class="loading-overlay hidden" id="loadingOverlay">
+                            <div class="cyber-loader"></div>
+                            <p class="loading-text">Extracting knowledge triples with Claude Sonnet...</p>
+                        </div>
+
+                        <div class="graph-tooltip" id="tooltip"></div>
+
+                        <div class="graph-legend" id="graphLegend" style="display:none;">
+                            <div class="legend-title">Node Colors (by degree)</div>
+                            <div class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span> High connectivity</div>
+                            <div class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span> Medium connectivity</div>
+                            <div class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Low connectivity</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Triples Panel -->
+                <div class="triples-panel" id="triplesPanel">
+                    <div class="triples-header">
+                        <h3>Extracted Triples</h3>
+                    </div>
+                    <div id="triplesList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let graphData = null;
+        let simulation = null;
+        let svg, g, zoom;
+
+        // Word count
+        document.getElementById('textInput').addEventListener('input', function() {
+            const words = this.value.trim().split(/\s+/).filter(w => w.length > 0);
+            document.getElementById('wordCount').textContent = words.length + ' words';
+        });
+
+        async function generateGraph() {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) {
+                showError('Please paste some text first.');
+                return;
+            }
+
+            const btn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loadingOverlay');
+            const emptyState = document.getElementById('emptyState');
+
+            btn.disabled = true;
+            loading.classList.remove('hidden');
+            emptyState.style.display = 'none';
+            hideError();
+
+            try {
+                const res = await fetch('/api/knowledgegraph/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                const data = await res.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    emptyState.style.display = 'flex';
+                    loading.classList.add('hidden');
+                    btn.disabled = false;
+                    return;
+                }
+
+                if (!data.triples || data.triples.length === 0) {
+                    showError('No triples could be extracted from the text.');
+                    emptyState.style.display = 'flex';
+                    loading.classList.add('hidden');
+                    btn.disabled = false;
+                    return;
+                }
+
+                graphData = data.triples;
+                renderGraph(graphData);
+                renderTriplesList(graphData);
+
+                document.getElementById('tripleCount').textContent = graphData.length;
+                document.getElementById('toggleTriplesBtn').style.display = 'inline-flex';
+                document.getElementById('graphLegend').style.display = 'block';
+
+            } catch (err) {
+                showError('Network error: ' + err.message);
+                emptyState.style.display = 'flex';
+            }
+
+            loading.classList.add('hidden');
+            btn.disabled = false;
+        }
+
+        function renderGraph(triples) {
+            // Build nodes and links
+            const nodeSet = new Set();
+            const links = [];
+
+            triples.forEach(t => {
+                nodeSet.add(t.subject);
+                nodeSet.add(t.object);
+                links.push({
+                    source: t.subject,
+                    target: t.object,
+                    label: t.predicate
+                });
+            });
+
+            const nodes = Array.from(nodeSet).map(id => ({ id }));
+
+            // Calculate degree for sizing
+            const degree = {};
+            links.forEach(l => {
+                degree[l.source] = (degree[l.source] || 0) + 1;
+                degree[l.target] = (degree[l.target] || 0) + 1;
+            });
+
+            const maxDegree = Math.max(...Object.values(degree), 1);
+
+            document.getElementById('nodeCount').textContent = nodes.length;
+            document.getElementById('edgeCount').textContent = links.length;
+
+            // Clear existing
+            const container = document.getElementById('graphContainer');
+            const svgEl = document.getElementById('graphSvg');
+            svgEl.innerHTML = '';
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            svg = d3.select('#graphSvg')
+                .attr('width', width)
+                .attr('height', height);
+
+            // Zoom behavior
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 5])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+
+            svg.call(zoom);
+
+            g = svg.append('g');
+
+            // Color scale based on degree
+            const colorScale = (d) => {
+                const deg = degree[d.id] || 0;
+                const ratio = deg / maxDegree;
+                if (ratio > 0.6) return '#6366f1';
+                if (ratio > 0.3) return '#22c55e';
+                return '#f59e0b';
+            };
+
+            // Size scale
+            const sizeScale = (d) => {
+                const deg = degree[d.id] || 0;
+                return Math.max(6, Math.min(20, 6 + (deg / maxDegree) * 14));
+            };
+
+            // Force simulation
+            simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(120))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(d => sizeScale(d) + 10));
+
+            // Links
+            const link = g.append('g')
+                .selectAll('line')
+                .data(links)
+                .enter().append('line')
+                .attr('class', 'link')
+                .attr('stroke', '#adb5bd');
+
+            // Link labels
+            const linkLabel = g.append('g')
+                .selectAll('text')
+                .data(links)
+                .enter().append('text')
+                .attr('class', 'link-label')
+                .text(d => d.label);
+
+            // Nodes
+            const node = g.append('g')
+                .selectAll('g')
+                .data(nodes)
+                .enter().append('g')
+                .attr('class', 'node')
+                .call(d3.drag()
+                    .on('start', dragStarted)
+                    .on('drag', dragged)
+                    .on('end', dragEnded));
+
+            node.append('circle')
+                .attr('r', d => sizeScale(d))
+                .attr('fill', d => colorScale(d));
+
+            node.append('text')
+                .attr('dy', d => sizeScale(d) + 14)
+                .text(d => d.id.length > 25 ? d.id.substring(0, 22) + '...' : d.id);
+
+            // Tooltip
+            const tooltip = document.getElementById('tooltip');
+
+            node.on('mouseover', function(event, d) {
+                const deg = degree[d.id] || 0;
+                tooltip.innerHTML = `<strong>${escapeHtml(d.id)}</strong><br>Connections: ${deg}`;
+                tooltip.classList.add('visible');
+            })
+            .on('mousemove', function(event) {
+                const rect = container.getBoundingClientRect();
+                tooltip.style.left = (event.clientX - rect.left + 15) + 'px';
+                tooltip.style.top = (event.clientY - rect.top - 10) + 'px';
+            })
+            .on('mouseout', function() {
+                tooltip.classList.remove('visible');
+            });
+
+            // Tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                linkLabel
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2);
+
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+        }
+
+        function dragStarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragEnded(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        function resetZoom() {
+            if (svg && zoom) {
+                svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+            }
+        }
+
+        function renderTriplesList(triples) {
+            const container = document.getElementById('triplesList');
+            container.innerHTML = triples.map(t =>
+                `<div class="triple-item">
+                    <span class="subject">${escapeHtml(t.subject)}</span>
+                    <span class="predicate"> → ${escapeHtml(t.predicate)} → </span>
+                    <span class="object">${escapeHtml(t.object)}</span>
+                </div>`
+            ).join('');
+        }
+
+        function toggleTriples() {
+            const panel = document.getElementById('triplesPanel');
+            panel.classList.toggle('visible');
+        }
+
+        function clearAll() {
+            document.getElementById('textInput').value = '';
+            document.getElementById('wordCount').textContent = '0 words';
+            document.getElementById('graphSvg').innerHTML = '';
+            document.getElementById('emptyState').style.display = 'flex';
+            document.getElementById('graphLegend').style.display = 'none';
+            document.getElementById('toggleTriplesBtn').style.display = 'none';
+            document.getElementById('triplesPanel').classList.remove('visible');
+            document.getElementById('triplesList').innerHTML = '';
+            document.getElementById('nodeCount').textContent = '0';
+            document.getElementById('edgeCount').textContent = '0';
+            document.getElementById('tripleCount').textContent = '0';
+            graphData = null;
+            if (simulation) simulation.stop();
+            hideError();
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMsg').style.display = 'none';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+    </script>
+</body>
+</html>

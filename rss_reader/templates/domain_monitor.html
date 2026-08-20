@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Monitor - CTI Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/neo-theme.css">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --accent: #4f46e5;
+            --accent-dim: #6366f1;
+            --accent-glow: rgba(79, 70, 229, 0.08);
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #059669;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-active: rgba(79, 70, 229, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+        .sidebar {
+            position: fixed;
+            left: 0; top: 0; bottom: 0;
+            width: 200px;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0;
+            z-index: 150;
+        }
+
+        .sidebar .sidebar-brand {
+            padding: 0 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .sidebar .sidebar-brand h2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .sidebar .sidebar-brand p {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-section-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0.8rem 1.25rem 0.3rem;
+        }
+
+        .sidebar .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            padding: 0 0.5rem;
+        }
+
+        .sidebar .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.78rem;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .sidebar .nav-links a:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar .nav-links a.active {
+            background: var(--accent-glow);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; padding: 1rem 0; }
+            .sidebar .sidebar-brand { display: none; }
+            .sidebar .nav-links a span { display: none; }
+            .sidebar .nav-links a { justify-content: center; padding: 0.6rem; }
+            .app-content { margin-left: 60px !important; }
+        }
+
+        .app-content {
+            margin-left: 200px;
+            flex: 1;
+            padding: 0;
+        }
+
+        .header {
+            padding: 1.5rem 2rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .brand { display: flex; align-items: center; gap: 0.75rem; }
+        .brand-icon { font-size: 1.5rem; }
+        .brand h1 { font-size: 1.1rem; font-weight: 700; }
+        .brand .tagline { font-size: 0.7rem; color: var(--text-muted); }
+
+        .header-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+
+        .btn:hover { background: var(--bg-hover); }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover { background: var(--accent-dim); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .content-area { padding: 1.5rem 2rem; }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            min-width: 160px;
+            flex: 1;
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Keyword config */
+        .config-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .config-section h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .keyword-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .keyword-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--accent-glow);
+            color: var(--accent);
+            padding: 0.35rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 500;
+        }
+
+        .keyword-chip .remove-kw {
+            cursor: pointer;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            transition: opacity 0.15s;
+        }
+
+        .keyword-chip .remove-kw:hover { opacity: 1; }
+
+        .keyword-input-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .keyword-input-row input {
+            flex: 1;
+            padding: 0.45rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .keyword-input-row input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        /* Filter bar */
+        .filter-bar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-bar input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .filter-bar input:focus {
+            border-color: var(--accent);
+        }
+
+        .filter-bar select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-family: inherit;
+            background: var(--bg-card);
+            outline: none;
+        }
+
+        .result-count {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* Domain table */
+        .domain-table-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .domain-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .domain-table thead th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+            position: sticky;
+            top: 0;
+        }
+
+        .domain-table tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.1s;
+        }
+
+        .domain-table tbody tr:last-child { border-bottom: none; }
+        .domain-table tbody tr:hover { background: var(--bg-hover); }
+
+        .domain-table td {
+            padding: 0.65rem 1rem;
+            color: var(--text-secondary);
+            vertical-align: middle;
+        }
+
+        .domain-table td.domain-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.78rem;
+        }
+
+        .keyword-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .keyword-badge.sky { background: #dbeafe; color: #1d4ed8; }
+        .keyword-badge.comcast { background: #fce7f3; color: #be185d; }
+        .keyword-badge.xfinity { background: #d1fae5; color: #065f46; }
+        .keyword-badge.default { background: var(--accent-glow); color: var(--accent); }
+
+        .cert-date {
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        .issuer-text {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .crtsh-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.75rem;
+        }
+
+        .crtsh-link:hover { text-decoration: underline; }
+
+        .source-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.68rem;
+            font-weight: 600;
+        }
+
+        .source-badge.crtsh { background: #ede9fe; color: #6d28d9; }
+        .source-badge.urlhaus { background: #fef2f2; color: #dc2626; }
+        .source-badge.certspotter { background: #ecfdf5; color: #059669; }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(248, 250, 252, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+        .loader-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+        .empty-state p { font-size: 0.85rem; }
+
+        /* Export buttons */
+        .export-btns { display: flex; gap: 0.4rem; }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+        }
+
+        .pagination button {
+            padding: 0.4rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-card);
+            font-size: 0.78rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .pagination button:hover { background: var(--bg-hover); }
+        .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pagination button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .pagination .page-info { font-size: 0.75rem; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <h2>🛡️ CTI Dashboard</h2>
+                <p>Threat Intel</p>
+            </div>
+            <div class="nav-links">
+                <div class="nav-section-title">OVERVIEW</div>
+                <a href="/"><span>🛡️</span> <span>Horizon Scans</span></a>
+                <a href="/vulnerabilities"><span>⚠️</span> <span>Vulnerabilities</span></a>
+                <a href="/npm"><span>📦</span> <span>NPM</span></a>
+                <a href="/ransomware"><span>💀</span> <span>Ransomware</span></a>
+                <a href="/adversaries"><span>👥</span> <span>Adversaries</span></a>
+                <a href="/knowledgegraph"><span>🕸️</span> <span>Knowledge Graph</span></a>
+                <div class="nav-section-title">ANALYSIS</div>
+                <a href="/osint"><span>🔎</span> <span>OSINT</span></a>
+                <a href="/sandbox"><span>🧪</span> <span>Sandbox</span></a>
+            </div>
+        </nav>
+
+        <div class="loading-overlay hidden" id="loadingOverlay">
+            <div class="loader-spinner"></div>
+            <p class="loading-text">Scanning CT logs, URLhaus &amp; NRD feeds...</p>
+        </div>
+
+        <div class="app-content">
+            <header class="header">
+                <div class="header-content">
+                    <div class="brand">
+                        <div class="brand-icon">🌐</div>
+                        <div>
+                            <h1>Domain Monitor</h1>
+                            <p class="tagline">Certificate Transparency OSINT — Newly Registered Domains</p>
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <select id="lookbackSelect" class="btn" style="font-size:0.78rem;">
+                            <option value="24">Last 24 Hours</option>
+                            <option value="72">Last 3 Days</option>
+                            <option value="168" selected>Last 7 Days</option>
+                            <option value="336">Last 14 Days</option>
+                            <option value="720">Last 30 Days</option>
+                        </select>
+                        <button class="btn btn-primary" id="scanBtn" onclick="runScan()">🔍 Scan Now</button>
+                        <button class="btn" onclick="loadCachedResults()">🔄 Refresh</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- Stats -->
+                <div class="stats-bar">
+                    <div class="stat-card">
+                        <div class="stat-label">Domains Found</div>
+                        <div class="stat-value" id="totalDomains">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Keywords Monitored</div>
+                        <div class="stat-value" id="totalKeywords">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Last Scan</div>
+                        <div class="stat-value" id="lastScan" style="font-size:0.85rem;">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Next Auto-Scan</div>
+                        <div class="stat-value" style="font-size:0.85rem;">Daily 6:00 AM UTC</div>
+                    </div>
+                </div>
+
+                <!-- Keyword Config -->
+                <div class="config-section">
+                    <h3>🔑 Monitored Keywords / Domains / TLDs</h3>
+                    <div class="keyword-chips" id="keywordChips"></div>
+                    <div class="keyword-input-row">
+                        <input type="text" id="newKeyword" placeholder="Add keyword (e.g. sky, comcast, xfinity)" onkeydown="if(event.key==='Enter')addKeyword()">
+                        <button class="btn" onclick="addKeyword()">+ Add</button>
+                        <button class="btn btn-primary" onclick="saveKeywords()">Save</button>
+                    </div>
+                </div>
+
+                <!-- Filter & Export -->
+                <div class="filter-bar">
+                    <input type="text" id="searchInput" placeholder="Filter domains..." oninput="filterAndRender()">
+                    <select id="keywordFilter" onchange="filterAndRender()">
+                        <option value="all">All Keywords</option>
+                    </select>
+                    <select id="sourceFilter" onchange="filterAndRender()">
+                        <option value="all">All Sources</option>
+                        <option value="crt.sh">crt.sh (CT Logs)</option>
+                        <option value="URLhaus">URLhaus (abuse.ch)</option>
+                        <option value="CertSpotter">CertSpotter (SSLMate)</option>
+                    </select>
+                    <span class="result-count" id="resultCount"></span>
+                    <div class="export-btns">
+                        <button class="btn" onclick="exportCSV()">📥 CSV</button>
+                        <button class="btn" onclick="exportJSON()">📥 JSON</button>
+                    </div>
+                </div>
+
+                <!-- Results Table -->
+                <div class="domain-table-wrap">
+                    <table class="domain-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Domain</th>
+                                <th>Source</th>
+                                <th>Keyword</th>
+                                <th>First Seen</th>
+                                <th>Expires</th>
+                                <th>Details / Issuer</th>
+                                <th>Link</th>
+                            </tr>
+                        </thead>
+                        <tbody id="domainTableBody">
+                            <tr><td colspan="8"><div class="empty-state"><div class="icon">🌐</div><p>Click "Scan Now" to search for newly registered domains, or wait for the daily auto-scan.</p></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allDomains = [];
+        let filteredDomains = [];
+        let currentKeywords = [];
+        let currentPage = 1;
+        const PAGE_SIZE = 50;
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        function keywordBadgeClass(kw) {
+            const k = kw.toLowerCase();
+            if (k === 'sky') return 'sky';
+            if (k === 'comcast') return 'comcast';
+            if (k === 'xfinity') return 'xfinity';
+            return 'default';
+        }
+
+        function formatDate(iso) {
+            if (!iso) return '--';
+            try {
+                const d = new Date(iso);
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } catch { return iso; }
+        }
+
+        function renderKeywordChips() {
+            const container = document.getElementById('keywordChips');
+            container.innerHTML = currentKeywords.map(kw =>
+                `<span class="keyword-chip"><span>${escapeHtml(kw)}</span><span class="remove-kw" onclick="removeKeyword('${escapeHtml(kw)}')">&times;</span></span>`
+            ).join('');
+        }
+
+        function addKeyword() {
+            const input = document.getElementById('newKeyword');
+            const kw = input.value.trim().toLowerCase();
+            if (kw && !currentKeywords.includes(kw)) {
+                currentKeywords.push(kw);
+                renderKeywordChips();
+            }
+            input.value = '';
+        }
+
+        function removeKeyword(kw) {
+            currentKeywords = currentKeywords.filter(k => k !== kw);
+            renderKeywordChips();
+        }
+
+        async function saveKeywords() {
+            try {
+                const resp = await fetch('/api/domain-monitor/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keywords: currentKeywords })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    currentKeywords = data.keywords;
+                    renderKeywordChips();
+                    updateKeywordFilter();
+                }
+            } catch (e) {
+                console.error('Failed to save keywords:', e);
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const resp = await fetch('/api/domain-monitor/config');
+                const data = await resp.json();
+                currentKeywords = data.keywords || [];
+                renderKeywordChips();
+                updateKeywordFilter();
+            } catch (e) {
+                console.error('Failed to load config:', e);
+            }
+        }
+
+        async function loadCachedResults() {
+            try {
+                const resp = await fetch('/api/domain-monitor/results');
+                const data = await resp.json();
+                populateResults(data);
+            } catch (e) {
+                console.error('Failed to load results:', e);
+            }
+        }
+
+        async function runScan() {
+            const overlay = document.getElementById('loadingOverlay');
+            const btn = document.getElementById('scanBtn');
+            overlay.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                // Start the scan (returns immediately)
+                const resp = await fetch('/api/domain-monitor/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        keywords: currentKeywords,
+                        lookback_hours: parseInt(document.getElementById('lookbackSelect').value)
+                    })
+                });
+                const startData = await resp.json();
+
+                if (startData.status === 'already_running') {
+                    document.querySelector('.loading-text').textContent = 'Scan already in progress...';
+                }
+
+                // Poll for completion
+                await pollScanStatus();
+            } catch (e) {
+                console.error('Scan failed:', e);
+                overlay.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        async function pollScanStatus() {
+            const overlay = document.getElementById('loadingOverlay');
+            const btn = document.getElementById('scanBtn');
+            const loadingText = document.querySelector('.loading-text');
+
+            const poll = async () => {
+                try {
+                    const resp = await fetch('/api/domain-monitor/scan/status');
+                    const data = await resp.json();
+
+                    if (data.status === 'running') {
+                        loadingText.textContent = data.progress || 'Scanning...';
+                        setTimeout(poll, 2000);
+                    } else {
+                        // Scan complete
+                        if (data.data) {
+                            populateResults(data.data);
+                        }
+                        loadingText.textContent = 'Scanning CT logs, URLhaus & CertSpotter...';
+                        overlay.classList.add('hidden');
+                        btn.disabled = false;
+                    }
+                } catch (e) {
+                    console.error('Poll error:', e);
+                    overlay.classList.add('hidden');
+                    btn.disabled = false;
+                }
+            };
+
+            setTimeout(poll, 2000);
+        }
+
+        function populateResults(data) {
+            allDomains = data.domains || [];
+            document.getElementById('totalDomains').textContent = allDomains.length;
+            document.getElementById('totalKeywords').textContent = (data.keywords || currentKeywords).length;
+            document.getElementById('lastScan').textContent = data.last_scan ? formatDate(data.last_scan) : '--';
+            updateKeywordFilter();
+            currentPage = 1;
+            filterAndRender();
+        }
+
+        function updateKeywordFilter() {
+            const sel = document.getElementById('keywordFilter');
+            const val = sel.value;
+            sel.innerHTML = '<option value="all">All Keywords</option>';
+            const kws = [...new Set(allDomains.map(d => d.keyword))];
+            kws.forEach(kw => {
+                const opt = document.createElement('option');
+                opt.value = kw;
+                opt.textContent = kw;
+                sel.appendChild(opt);
+            });
+            sel.value = val;
+        }
+
+        function filterAndRender() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const kwFilter = document.getElementById('keywordFilter').value;
+            const srcFilter = document.getElementById('sourceFilter').value;
+
+            filteredDomains = allDomains.filter(d => {
+                const matchKw = kwFilter === 'all' || d.keyword === kwFilter;
+                const matchSrc = srcFilter === 'all' || (d.source || 'crt.sh') === srcFilter;
+                const matchQ = !query || d.domain.toLowerCase().includes(query) || (d.issuer && d.issuer.toLowerCase().includes(query));
+                return matchKw && matchQ && matchSrc;
+            });
+
+            document.getElementById('resultCount').textContent = `Showing ${filteredDomains.length} of ${allDomains.length} domains`;
+            renderTable();
+            renderPagination();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('domainTableBody');
+            if (filteredDomains.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">📭</div><p>No domains found matching your criteria.</p></div></td></tr>';
+                return;
+            }
+
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const pageItems = filteredDomains.slice(start, start + PAGE_SIZE);
+
+            tbody.innerHTML = pageItems.map((d, i) => `
+                <tr>
+                    <td style="color:var(--text-muted);font-size:0.72rem;">${start + i + 1}</td>
+                    <td class="domain-name">${escapeHtml(d.domain)}</td>
+                    <td><span class="source-badge ${sourceBadgeClass(d.source)}">${escapeHtml(d.source || 'crt.sh')}</span></td>
+                    <td><span class="keyword-badge ${keywordBadgeClass(d.keyword)}">${escapeHtml(d.keyword)}</span></td>
+                    <td class="cert-date">${formatDate(d.not_before)}</td>
+                    <td class="cert-date">${formatDate(d.not_after)}</td>
+                    <td class="issuer-text" title="${escapeHtml(d.issuer)}">${escapeHtml(extractIssuerCN(d.issuer))}</td>
+                    <td>${getDetailLink(d)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function extractIssuerCN(issuer) {
+            if (!issuer) return '--';
+            const match = issuer.match(/CN=([^,]+)/i);
+            return match ? match[1].trim() : issuer.substring(0, 40);
+        }
+
+        function sourceBadgeClass(src) {
+            if (!src) return 'crtsh';
+            const s = src.toLowerCase();
+            if (s.includes('urlhaus')) return 'urlhaus';
+            if (s.includes('certspotter')) return 'certspotter';
+            return 'crtsh';
+        }
+
+        function getDetailLink(d) {
+            const src = (d.source || '').toLowerCase();
+            if (d.cert_id && src.includes('crt')) {
+                return `<a class="crtsh-link" href="https://crt.sh/?id=${encodeURIComponent(d.cert_id)}" target="_blank" rel="noopener noreferrer">crt.sh</a>`;
+            }
+            if (d.urlhaus_url) {
+                return `<a class="crtsh-link" href="${escapeHtml(d.urlhaus_url)}" target="_blank" rel="noopener noreferrer">URLhaus</a>`;
+            }
+            if (src.includes('whois') || src.includes('nrd') || src.includes('certspotter')) {
+                return `<a class="crtsh-link" href="https://sslmate.com/certspotter/api/" target="_blank" rel="noopener noreferrer">CertSpotter</a>`;
+            }
+            return '--';
+        }
+
+        function renderPagination() {
+            const container = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredDomains.length / PAGE_SIZE);
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+            let html = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">← Prev</button>`;
+            html += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
+            html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">Next →</button>`;
+            container.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            renderTable();
+            renderPagination();
+            document.querySelector('.domain-table-wrap').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function exportCSV() {
+            if (filteredDomains.length === 0) return;
+            const header = 'Domain,Source,Keyword,First Seen,Expires,Issuer\n';
+            const rows = filteredDomains.map(d =>
+                `"${d.domain}","${d.source||'crt.sh'}","${d.keyword}","${d.not_before}","${d.not_after}","${(d.issuer||'').replace(/"/g,'""')}"`
+            ).join('\n');
+            downloadFile(header + rows, 'domain_monitor_' + new Date().toISOString().slice(0,10) + '.csv', 'text/csv');
+        }
+
+        function exportJSON() {
+            if (filteredDomains.length === 0) return;
+            downloadFile(JSON.stringify(filteredDomains, null, 2), 'domain_monitor_' + new Date().toISOString().slice(0,10) + '.json', 'application/json');
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Init
+        loadConfig();
+        loadCachedResults();
+    </script>
+</body>
+</html>
