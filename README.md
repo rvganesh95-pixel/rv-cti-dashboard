@@ -53,7 +53,6 @@ Set the following values in `.env` before running features that depend on extern
 - `HA_API_KEY`
 - `ANYRUN_API_KEY`
 - `ABUSEIPDB_API_KEY`
-- `VTI_API_KEY`
 - `URLSCAN_API_KEY`
 
 ## GitHub-safe workflow
